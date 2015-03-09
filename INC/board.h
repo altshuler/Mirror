@@ -1,0 +1,527 @@
+/**
+* @file board.h
+* @brief PEDESTAL board level definitions
+*
+* @author Evgeny Altshuler
+*
+* @version 0.0.1
+* @date 19.02.2014
+*/
+#ifndef _BOARD_H
+#define _BOARD_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "stm32f2xx.h"
+
+/*
+** GPIO definitions
+*/
+
+/*
+** Port A
+*/
+
+#define MII_CRS_PIN						GPIO_Pin_0
+#define MII_CRS_GPIO_PORT				GPIOA
+#define MII_CRS_GPIO_CLK				RCC_AHB1Periph_GPIOA
+#define MII_CRS_PIN_SOURCE				GPIO_PinSource0
+
+#define ETH_REF_CLK_PIN					GPIO_Pin_1
+#define ETH_REF_CLK_GPIO_PORT			GPIOA
+#define ETH_REF_CLK_GPIO_CLK			RCC_AHB1Periph_GPIOA
+#define ETH_REF_CLK_SOURCE				GPIO_PinSource1
+
+#define MII_MDIO_PIN					GPIO_Pin_2
+#define MII_MDIO_GPIO_PORT				GPIOA
+#define MII_MDIO_GPIO_CLK				RCC_AHB1Periph_GPIOA
+#define MII_MDIO_PIN_SOURCE				GPIO_PinSource2
+
+#define MII_COL_PIN						GPIO_Pin_3
+#define MII_COL_GPIO_PORT				GPIOA
+#define MII_COL_GPIO_CLK				RCC_AHB1Periph_GPIOA
+#define MII_COL_PIN_SOURCE				GPIO_PinSource3
+
+#define PIN_POS_PIN						GPIO_Pin_4
+#define PIN_POS_GPIO_PORT				GPIOA
+#define PIN_POS_GPIO_CLK				RCC_AHB1Periph_GPIOA
+#define PIN_POS_PIN_SOURCE				GPIO_PinSource4
+
+#define SPI1_SCK_PIN					GPIO_Pin_5
+#define SPI1_SCK_GPIO_PORT				GPIOA
+#define SPI1_SCK_GPIO_CLK				RCC_AHB1Periph_GPIOA
+#define SPI1_SCK_PIN_SOURCE				GPIO_PinSource5
+
+#define SPI1_MISO_PIN					GPIO_Pin_6
+#define SPI1_MISO_GPIO_PORT				GPIOA
+#define SPI1_MISO_GPIO_CLK				RCC_AHB1Periph_GPIOA
+#define SPI1_MISO_PIN_SOURCE			GPIO_PinSource6
+
+#define MII_RX_DV_RMII_CRSDV_PIN		GPIO_Pin_7
+#define MII_RX_DV_RMII_CRSDV_GPIO_PORT	GPIOA
+#define MII_RX_DV_RMII_CRSDV_GPIO_CLK	RCC_AHB1Periph_GPIOA
+#define MII_RX_DV_RMII_CRSDV_PIN_SOURCE	GPIO_PinSource7
+
+#define MCO_PIN							GPIO_Pin_8
+#define MCO_GPIO_PORT					GPIOA
+#define MCO_GPIO_CLK					RCC_AHB1Periph_GPIOA
+#define MCO_PIN_SOURCE					GPIO_PinSource8
+
+#define UART1_TX_PIN					GPIO_Pin_9
+#define UART1_TX_GPIO_PORT				GPIOA
+#define UART1_TX_GPIO_CLK				RCC_AHB1Periph_GPIOA
+#define UART1_TX_PIN_SOURCE				GPIO_PinSource9
+
+#define UART1_RX_PIN					GPIO_Pin_10
+#define UART1_RX_GPIO_PORT				GPIOA
+#define UART1_RX_GPIO_CLK				RCC_AHB1Periph_GPIOA
+#define UART1_RX_PIN_SOURCE				GPIO_PinSource10
+
+
+/*
+** Port B
+*/
+
+#define MII_RXD2_PIN					GPIO_Pin_0				
+#define MII_RXD2_GPIO_PORT				GPIOB
+#define MII_RXD2_GPIO_CLK				RCC_AHB1Periph_GPIOB
+#define MII_RXD2_PIN_SOURCE				GPIO_PinSource0
+
+#define MII_RXD3_PIN					GPIO_Pin_1				
+#define MII_RXD3_GPIO_PORT				GPIOB
+#define MII_RXD3_GPIO_CLK				RCC_AHB1Periph_GPIOB
+#define MII_RXD3_PIN_SOURCE				GPIO_PinSource1
+
+#define I2C1_SCL_PIN					GPIO_Pin_8
+#define I2C1_SCL_GPIO_PORT				GPIOB
+#define I2C1_SCL_GPIO_CLK				RCC_AHB1Periph_GPIOB
+#define I2C1_SCL_PIN_SOURCE				GPIO_PinSource8
+
+#define I2C1_SDA_PIN					GPIO_Pin_9
+#define I2C1_SDA_GPIO_PORT				GPIOB
+#define I2C1_SDA_GPIO_CLK				RCC_AHB1Periph_GPIOB
+#define I2C1_SDA_PIN_SOURCE				GPIO_PinSource9
+
+#define MII_RX_ER_PIN					GPIO_Pin_10				
+#define MII_RX_ER_GPIO_PORT				GPIOB
+#define MII_RX_ER_GPIO_CLK				RCC_AHB1Periph_GPIOB
+#define MII_RX_ER_PIN_SOURCE			GPIO_PinSource10
+
+#define MII_TX_EN_PIN					GPIO_Pin_11
+#define MII_TX_EN_GPIO_PORT				GPIOB
+#define MII_TX_EN_GPIO_CLK				RCC_AHB1Periph_GPIOB
+#define MII_TX_EN_PIN_SOURCE			GPIO_PinSource11
+
+#define MII_TXD0_PIN					GPIO_Pin_12
+#define MII_TXD0_GPIO_PORT				GPIOB
+#define MII_TXD0_GPIO_CLK				RCC_AHB1Periph_GPIOB
+#define MII_TXD0_PIN_SOURCE				GPIO_PinSource12
+
+#define MII_TXD1_PIN					GPIO_Pin_13				
+#define MII_TXD1_GPIO_PORT				GPIOB
+#define MII_TXD1_GPIO_CLK				RCC_AHB1Periph_GPIOB
+#define MII_TXD1_PIN_SOURCE				GPIO_PinSource13
+
+#define MII_INT_PIN						GPIO_Pin_14				
+#define MII_INT_GPIO_PORT				GPIOB
+#define MII_INT_GPIO_CLK				RCC_AHB1Periph_GPIOB
+#define MII_INT_PIN_SOURCE				GPIO_PinSource14
+
+#define PHY_RESET_PIN					GPIO_Pin_15				
+#define PHY_RESET_GPIO_PORT				GPIOB
+#define PHY_RESET_GPIO_CLK				RCC_AHB1Periph_GPIOB
+#define PHY_RESET_PIN_SOURCE			GPIO_PinSource15
+
+/*
+** Port C
+*/
+#define V_PROTECTED_PIN					GPIO_Pin_0				
+#define V_PROTECTED_GPIO_PORT			GPIOC
+#define V_PROTECTED_GPIO_CLK			RCC_AHB1Periph_GPIOC
+#define V_PROTECTED_PIN_SOURCE			GPIO_PinSource0
+
+#define MII_MDC_PIN						GPIO_Pin_1				
+#define MII_MDC_GPIO_PORT				GPIOC
+#define MII_MDC_GPIO_CLK				RCC_AHB1Periph_GPIOC
+#define MII_MDC_PIN_SOURCE				GPIO_PinSource1
+
+#define MII_TXD2_PIN					GPIO_Pin_2				
+#define MII_TXD2_GPIO_PORT				GPIOC
+#define MII_TXD2_GPIO_CLK				RCC_AHB1Periph_GPIOC
+#define MII_TXD2_PIN_SOURCE				GPIO_PinSource2
+
+#define MII_TX_CLK_PIN					GPIO_Pin_3				
+#define MII_TX_CLK_GPIO_PORT			GPIOC
+#define MII_TX_CLK_GPIO_CLK				RCC_AHB1Periph_GPIOC
+#define MII_TX_CLK_PIN_SOURCE			GPIO_PinSource3
+
+#define MII_RXD0_PIN					GPIO_Pin_4				
+#define MII_RXD0_GPIO_PORT				GPIOC
+#define MII_RXD0_GPIO_CLK				RCC_AHB1Periph_GPIOC
+#define MII_RXD0_PIN_SOURCE				GPIO_PinSource4
+
+#define MII_RXD1_PIN					GPIO_Pin_5				
+#define MII_RXD1_GPIO_PORT			`	GPIOC
+#define MII_RXD1_GPIO_CLK				RCC_AHB1Periph_GPIOC
+#define MII_RXD1_PIN_SOURCE				GPIO_PinSource5
+
+#define USART6_TX_PIN					GPIO_Pin_6
+#define USART6_TX_GPIO_PORT				GPIOD
+#define USART6_TX_GPIO_CLK				RCC_AHB1Periph_GPIOD
+#define USART6_TX_PIN_SOURCE				GPIO_PinSource6
+
+#define USART6_RX_PIN					GPIO_Pin_7
+#define USART6_RX_GPIO_PORT				GPIOD
+#define USART6_RX_GPIO_CLK				RCC_AHB1Periph_GPIOD
+#define USART6_RX_PIN_SOURCE			GPIO_PinSource7
+
+#define WD_TRIG_PIN						GPIO_Pin_8				
+#define WD_TRIG_GPIO_PORT				GPIOC
+#define WD_TRIG_GPIO_CLK				RCC_AHB1Periph_GPIOC
+#define WD_TRIG_PIN_SOURCE				GPIO_PinSource8
+
+#define SPI3_CLK_PIN					GPIO_Pin_10
+#define SPI3_CLK_GPIO_PORT				GPIOC
+#define SPI3_CLK_GPIO_CLK				RCC_AHB1Periph_GPIOC
+#define SPI3_CLK_PIN_SOURCE				GPIO_PinSource10
+
+#define SPI3_MISO_PIN					GPIO_Pin_11
+#define SPI3_MISO_GPIO_PORT				GPIOC
+#define SPI3_MISO_GPIO_CLK				RCC_AHB1Periph_GPIOC
+#define SPI3_MISO_PIN_SOURCE			GPIO_PinSource11
+
+#define SPI3_MOSI_PIN					GPIO_Pin_12
+#define SPI3_MOSI_GPIO_PORT				GPIOC
+#define SPI3_MOSI_GPIO_CLK				RCC_AHB1Periph_GPIOC
+#define SPI3_MOSI_PIN_SOURCE			GPIO_PinSource12
+
+#define TP10_PIN						GPIO_Pin_13
+#define TP10_GPIO_PORT					GPIOC
+#define TP10_GPIO_CLK					RCC_AHB1Periph_GPIOC
+#define TP10_PIN_SOURCE					GPIO_PinSource13
+
+#define TP11_PIN						GPIO_Pin_14
+#define TP11_GPIO_PORT					GPIOC
+#define TP11_GPIO_CLK					RCC_AHB1Periph_GPIOC
+#define TP11_PIN_SOURCE					GPIO_PinSource14
+
+#define TP21_PIN						GPIO_Pin_15
+#define TP21_GPIO_PORT					GPIOC
+#define TP21_GPIO_CLK					RCC_AHB1Periph_GPIOC
+#define TP21_PIN_SOURCE					GPIO_PinSource15
+
+
+/*
+** Port D
+*/
+#define CAN_RX_PIN						GPIO_Pin_0
+#define CAN_RX_GPIO_PORT				GPIOD
+#define CAN_RX_GPIO_CLK					RCC_AHB1Periph_GPIOD
+#define CAN_RX_PIN_SOURCE				GPIO_PinSource0
+	
+#define CAN_TX_PIN						GPIO_Pin_1
+#define CAN_TX_GPIO_PORT				GPIOD
+#define CAN_TX_GPIO_CLK					RCC_AHB1Periph_GPIOD
+#define CAN_TX_PIN_SOURCE				GPIO_PinSource1
+	
+#define TP24_PIN						GPIO_Pin_2
+#define TP24_GPIO_PORT					GPIOD
+#define TP24_GPIO_CLK					RCC_AHB1Periph_GPIOD
+#define TP24_PIN_SOURCE					GPIO_PinSource2
+
+#define USART2_TX_PIN					GPIO_Pin_5
+#define USART2_TX_GPIO_PORT				GPIOD
+#define USART2_TX_GPIO_CLK				RCC_AHB1Periph_GPIOD
+#define USART2_TX_PIN_SOURCE				GPIO_PinSource5
+
+#define USART2_RX_PIN					GPIO_Pin_6
+#define USART2_RX_GPIO_PORT				GPIOD
+#define USART2_RX_GPIO_CLK				RCC_AHB1Periph_GPIOD
+#define USART2_RX_PIN_SOURCE			GPIO_PinSource6
+
+#define RS_422_TX_EN_PIN				GPIO_Pin_7
+#define RS_422_TX_EN_GPIO_PORT			GPIOD
+#define RS_422_TX_EN_GPIO_CLK			RCC_AHB1Periph_GPIOD
+#define RS_422_TX_EN_PIN_SOURCE			GPIO_PinSource7
+
+#define USART3_TX_PIN					GPIO_Pin_8
+#define USART3_TX_GPIO_PORT				GPIOD
+#define USART3_TX_GPIO_CLK				RCC_AHB1Periph_GPIOD
+#define USART3_TX_PIN_SOURCE				GPIO_PinSource8
+
+#define USART3_RX_PIN					GPIO_Pin_9
+#define USART3_RX_GPIO_PORT				GPIOD
+#define USART3_RX_GPIO_CLK				RCC_AHB1Periph_GPIOD
+#define USART3_RX_PIN_SOURCE			GPIO_PinSource9
+
+#define ENCODER_1_CLK_EN_PIN			GPIO_Pin_10
+#define ENCODER_1_CLK_EN_GPIO_PORT		GPIOD
+#define ENCODER_1_CLK_EN_GPIO_CLK		RCC_AHB1Periph_GPIOD
+#define ENCODER_1_CLK_EN_PIN_SOURCE		GPIO_PinSource10
+
+#define ENCODER_4_CLK_EN_PIN			GPIO_Pin_11
+#define ENCODER_4_CLK_EN_GPIO_PORT		GPIOD
+#define ENCODER_4_CLK_EN_GPIO_CLK		RCC_AHB1Periph_GPIOD
+#define ENCODER_4_CLK_EN_SOURCE			GPIO_PinSource11
+
+#define ENCODER_3_CLK_EN_PIN			GPIO_Pin_12
+#define ENCODER_3_CLK_EN_GPIO_PORT		GPIOD
+#define ENCODER_3_CLK_EN_GPIO_CLK		RCC_AHB1Periph_GPIOD
+#define ENCODER_3_CLK_EN_PIN_SOURCE		GPIO_PinSource12
+
+#define ENCODER_2_CLK_EN_PIN			GPIO_Pin_13
+#define ENCODER_2_CLK_EN_GPIO_PORT		GPIOD
+#define ENCODER_2_CLK_EN_GPIO_CLK		RCC_AHB1Periph_GPIOD
+#define ENCODER_2_CLK_EN_PIN_SOURCE		GPIO_PinSource13
+
+#define TRAVEL_PWM_L_PIN				GPIO_Pin_14
+#define TRAVEL_PWM_L_GPIO_PORT			GPIOD
+#define TRAVEL_PWM_L_GPIO_CLK			RCC_AHB1Periph_GPIOD
+#define TRAVEL_PWM_L_PIN_SOURCE			GPIO_PinSource14
+
+#define TRAVEL_PWM_R_PIN				GPIO_Pin_15
+#define TRAVEL_PWM_R_GPIO_PORT			GPIOD
+#define TRAVEL_PWM_R_GPIO_CLK			RCC_AHB1Periph_GPIOD
+#define TRAVEL_PWM_R_PIN_SOURCE			GPIO_PinSource15
+
+/*
+** Port E
+*/
+#define WP_PIN							GPIO_Pin_0
+#define WP_GPIO_PORT					GPIOE
+#define WP_GPIO_CLK						RCC_AHB1Periph_GPIOE
+#define WP_PIN_SOURCE					GPIO_PinSource0
+
+#define MII_TXD3_PIN					GPIO_Pin_2
+#define MII_TXD3_GPIO_PORT				GPIOE
+#define MII_TXD3_GPIO_CLK				RCC_AHB1Periph_GPIOE
+#define MII_TXD3_PIN_SOURCE				GPIO_PinSource2
+
+#define TP18_PIN						GPIO_Pin_3
+#define TP18_GPIO_PORT					GPIOE
+#define TP18_GPIO_CLK					RCC_AHB1Periph_GPIOE
+#define TP18_PIN_SOURCE					GPIO_PinSource3
+
+#define TP19_PIN						GPIO_Pin_4
+#define TP19_GPIO_PORT					GPIOE
+#define TP19_GPIO_CLK					RCC_AHB1Periph_GPIOE
+#define TP19_PIN_SOURCE					GPIO_PinSource4
+
+#define BREAK_PWM_M1_PIN				GPIO_Pin_5
+#define BREAK_PWM_M1_GPIO_PORT			GPIOE
+#define BREAK_PWM_M1_GPIO_CLK			RCC_AHB1Periph_GPIOE
+#define BREAK_PWM_M1_PIN_SOURCE			GPIO_PinSource5
+
+#define BREAK_PWM_M2_PIN				GPIO_Pin_6
+#define BREAK_PWM_M2_GPIO_PORT			GPIOE
+#define BREAK_PWM_M2_GPIO_CLK			RCC_AHB1Periph_GPIOE
+#define BREAK_PWM_M2_PIN_SOURCE			GPIO_PinSource6
+
+#define EMERGENCY_INTERRUPT2_PIN		GPIO_Pin_7
+#define EMERGENCY_INTERRUPT2_GPIO_PORT	GPIOE
+#define EMERGENCY_INTERRUPT2_GPIO_CLK	RCC_AHB1Periph_GPIOE
+#define EMERGENCY_INTERRUPT2_PIN_SOURCE	GPIO_PinSource7
+
+#define EMERGENCY_INTERRUPT1_PIN		GPIO_Pin_8
+#define EMERGENCY_INTERRUPT1_GPIO_PORT	GPIOE
+#define EMERGENCY_INTERRUPT1_GPIO_CLK	RCC_AHB1Periph_GPIOE
+#define EMERGENCY_INTERRUPT1_PIN_SOURCE	GPIO_PinSource8
+
+#define DISCRETE_1_PIN					GPIO_Pin_9
+#define DISCRETE_1_GPIO_PORT			GPIOE
+#define DISCRETE_1_GPIO_CLK				RCC_AHB1Periph_GPIOE
+#define DISCRETE_1_PIN_SOURCE			GPIO_PinSource9
+
+#define DISCRETE_2_PIN					GPIO_Pin_10
+#define DISCRETE_2_GPIO_PORT			GPIOE
+#define DISCRETE_2_GPIO_CLK				RCC_AHB1Periph_GPIOE
+#define DISCRETE_2_PIN_SOURCE			GPIO_PinSource10
+
+#define DISCRETE_3_PIN					GPIO_Pin_11
+#define DISCRETE_3_GPIO_PORT			GPIOE
+#define DISCRETE_3_GPIO_CLK				RCC_AHB1Periph_GPIOE
+#define DISCRETE_3_PIN_SOURCE			GPIO_PinSource11
+
+#define DISCRETE_4_PIN					GPIO_Pin_12
+#define DISCRETE_4_GPIO_PORT			GPIOE
+#define DISCRETE_4_GPIO_CLK				RCC_AHB1Periph_GPIOE
+#define DISCRETE_4_PIN_SOURCE			GPIO_PinSource12
+
+#define TP38_PIN						GPIO_Pin_13
+#define TP38_GPIO_PORT					GPIOE
+#define TP38_GPIO_CLK					RCC_AHB1Periph_GPIOE
+#define TP38_PIN_SOURCE					GPIO_PinSource13
+
+#define TP39_PIN						GPIO_Pin_14
+#define TP39_GPIO_PORT					GPIOE
+#define TP39_GPIO_CLK					RCC_AHB1Periph_GPIOE
+#define TP39_PIN_SOURCE					GPIO_PinSource14
+
+#define TP40_PIN						GPIO_Pin_15
+#define TP40_GPIO_PORT					GPIOE
+#define TP40_GPIO_CLK					RCC_AHB1Periph_GPIOE
+#define TP40_PIN_SOURCE					GPIO_PinSource15
+
+
+
+
+/*
+** Port F
+*/
+#define TP13_PIN						GPIO_Pin_0
+#define TP13_GPIO_PORT					GPIOF
+#define TP13_GPIO_CLK					RCC_AHB1Periph_GPIOF
+#define TP13_PIN_SOURCE					GPIO_PinSource0
+	
+#define TP14_PIN						GPIO_Pin_1
+#define TP14_GPIO_PORT					GPIOF
+#define TP14_GPIO_CLK					RCC_AHB1Periph_GPIOF
+#define TP14_PIN_SOURCE					GPIO_PinSource1
+	
+#define TP15_PIN						GPIO_Pin_2
+#define TP15_GPIO_PORT					GPIOF
+#define TP15_GPIO_CLK					RCC_AHB1Periph_GPIOF
+#define TP15_PIN_SOURCE					GPIO_PinSource2
+	
+#define CHK_VM_PIN						GPIO_Pin_3
+#define CHK_VM_GPIO_PORT				GPIOF
+#define CHK_VM_GPIO_CLK					RCC_AHB1Periph_GPIOF
+#define CHK_VM_PIN_SOURCE				GPIO_PinSource3
+	
+#define CHK_5V_PIN						GPIO_Pin_4
+#define CHK_5V_GPIO_PORT				GPIOF
+#define CHK_5V_GPIO_CLK					RCC_AHB1Periph_GPIOF
+#define CHK_5V_PIN_SOURCE				GPIO_PinSource4
+	
+#define TP23_PIN						GPIO_Pin_5
+#define TP23_GPIO_PORT					GPIOF
+#define TP23_GPIO_CLK					RCC_AHB1Periph_GPIOF
+#define TP23_PIN_SOURCE					GPIO_PinSource5
+	
+#define AIN_1RC_PIN 					GPIO_Pin_6					
+#define AIN_1RC_GPIO_PORT				GPIOF
+#define AIN_1RC_GPIO_CLK				RCC_AHB1Periph_GPIOF
+#define AIN_1RC_PIN_SOURCE				GPIO_PinSource6
+	
+#define AIN_2RC_PIN 					GPIO_Pin_7					
+#define AIN_2RC_GPIO_PORT				GPIOF
+#define AIN_2RC_GPIO_CLK				RCC_AHB1Periph_GPIOF
+#define AIN_2RC_PIN_SOURCE				GPIO_PinSource7
+	
+#define AIN_3RC_PIN 					GPIO_Pin_8					
+#define AIN_3RC_GPIO_PORT				GPIOF
+#define AIN_3RC_GPIO_CLK				RCC_AHB1Periph_GPIOF
+#define AIN_3RC_PIN_SOURCE				GPIO_PinSource8
+	
+#define PIN_CURRENT_PIN 				GPIO_Pin_9					
+#define PIN_CURRENT_GPIO_PORT			GPIOF
+#define PIN_CURRENT_GPIO_CLK			RCC_AHB1Periph_GPIOF
+#define PIN_CURRENT_PIN_SOURCE			GPIO_PinSource9
+	
+#define CHK_12V_PIN 					GPIO_Pin_10					
+#define CHK_12V_GPIO_PORT				GPIOF
+#define CHK_12V_GPIO_CLK				RCC_AHB1Periph_GPIOF
+#define CHK_12V_PIN_SOURCE				GPIO_PinSource10
+	
+#define PIN_ON_PIN						GPIO_Pin_11
+#define PIN_ON_GPIO_PORT				GPIOF
+#define PIN_ON_GPIO_CLK					RCC_AHB1Periph_GPIOF
+#define PIN_ON_PIN_SOURCE				GPIO_PinSource11
+	
+#define CONN_CHK_PIN					GPIO_Pin_12
+#define CONN_CHK_GPIO_PORT				GPIOF
+#define CONN_CHK_GPIO_CLK				RCC_AHB1Periph_GPIOF
+#define CONN_CHK_PIN_SOURCE				GPIO_PinSource12
+	
+#define ONE_SHOT2_TRIGN_PIN				GPIO_Pin_14
+#define ONE_SHOT2_TRIGN_GPIO_PORT		GPIOF
+#define ONE_SHOT2_TRIGN_GPIO_CLK		RCC_AHB1Periph_GPIOF
+#define ONE_SHOT2_TRIGN_PIN_SOURCE		GPIO_PinSource14
+	
+#define ONE_SHOT1_TRIGN_PIN				GPIO_Pin_15
+#define ONE_SHOT1_TRIGN_GPIO_PORT		GPIOF
+#define ONE_SHOT1_TRIGN_GPIO_CLK		RCC_AHB1Periph_GPIOF
+#define ONE_SHOT1_TRIGN_PIN_SOURCE		GPIO_PinSource15
+
+
+
+/*
+** Port G
+*/
+
+#define ENCODER_CLK_EN_PIN				GPIO_Pin_0
+#define ENCODER_CLK_EN_GPIO_PORT		GPIOG
+#define ENCODER_CLK_EN_GPIO_CLK			RCC_AHB1Periph_GPIOG
+#define ENCODER_CLK_EN_PIN_SOURCE		GPIO_PinSource0
+
+#define LED3_PIN						GPIO_Pin_2
+#define LED3_GPIO_PORT					GPIOG
+#define LED3_GPIO_CLK					RCC_AHB1Periph_GPIOG
+#define LED3_PIN_SOURCE					GPIO_PinSource2
+
+#define TP35_PIN						GPIO_Pin_3
+#define TP35_GPIO_PORT					GPIOG
+#define TP35_GPIO_CLK					RCC_AHB1Periph_GPIOG
+#define TP35_PIN_SOURCE					GPIO_PinSource3
+
+#define TP34_PIN						GPIO_Pin_4
+#define TP34_GPIO_PORT					GPIOG
+#define TP34_GPIO_CLK					RCC_AHB1Periph_GPIOG
+#define TP34_PIN_SOURCE					GPIO_PinSource4
+
+#define DISCRETE_5_PIN					GPIO_Pin_5
+#define DISCRETE_5_GPIO_PORT			GPIOG
+#define DISCRETE_5_GPIO_CLK				RCC_AHB1Periph_GPIOG
+#define DISCRETE_5_PIN_SOURCE			GPIO_PinSource5
+
+#define DISCRETE_6_PIN					GPIO_Pin_6
+#define DISCRETE_6_GPIO_PORT			GPIOG
+#define DISCRETE_6_GPIO_CLK				RCC_AHB1Periph_GPIOG
+#define DISCRETE_6_PIN_SOURCE			GPIO_PinSource6
+
+#define DISCRETE_7_PIN					GPIO_Pin_7
+#define DISCRETE_7_GPIO_PORT			GPIOG
+#define DISCRETE_7_GPIO_CLK				RCC_AHB1Periph_GPIOG
+#define DISCRETE_7_PIN_SOURCE			GPIO_PinSource7
+
+#define DISCRETE_8_PIN					GPIO_Pin_8
+#define DISCRETE_8_GPIO_PORT			GPIOG
+#define DISCRETE_8_GPIO_CLK				RCC_AHB1Periph_GPIOG
+#define DISCRETE_8_PIN_SOURCE			GPIO_PinSource8
+
+#define BREAK_M1N_PIN					GPIO_Pin_10
+#define BREAK_M1N_GPIO_PORT				GPIOG
+#define BREAK_M1N_GPIO_CLK				RCC_AHB1Periph_GPIOG
+#define BREAK_M1N_PIN_SOURCE			GPIO_PinSource10
+
+#define BREAK_M2N_PIN					GPIO_Pin_11
+#define BREAK_M2N_GPIO_PORT				GPIOG
+#define BREAK_M2N_GPIO_CLK				RCC_AHB1Periph_GPIOG
+#define BREAK_M2N_PIN_SOURCE			GPIO_PinSource11
+
+/*
+** Port H
+*/
+
+
+
+
+/*
+** Port I
+*/
+
+
+
+
+
+
+#ifdef __cplusplus
+}
+#endif
+
+
+#endif
+
+
