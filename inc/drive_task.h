@@ -57,6 +57,8 @@ extern const char *ctlTxServerQueueName[N_CTL];
 #define MOVE_COMMAND			2
 #define REF_MODE_COMMAND		3
 #define VELOCITY_COMMAND		4
+#define MOVE_REL_COMMAND		5
+#define ON_TARGET_COMMAND		6
 
 
 #define FTOA_OK			0
@@ -84,6 +86,10 @@ extern const char *ctlTxServerQueueName[N_CTL];
 
 #define DRV_STATE_VELOCITY_SET		13
 #define DRV_STATE_VELOCITY_GET		14
+
+#define DRV_STATE_MOVE_REL_SET		15
+
+#define DRV_STATE_ONT_GET			16
 
 
 #define CURRENT_OFFSET		2.0
@@ -120,10 +126,13 @@ extern const char *ctlTxServerQueueName[N_CTL];
 		0,					/* Position 2 Command  */\
 		0,					/* Target Position  Command  */\
 		0.0,				/* Target Position X Command  */\
-		0.0,				/* Target Position Y Command  */\		
+		0.0,				/* Target Position Y Command  */\	
+		0.0,				/* Host Position X Command  */\
+		0.0,				/* Host Position Y Command  */\			
 		0.0,				/* Velocity Command */\
 		0,					/* Velocity Update Flag*/\
-		0,					/* Motion Status Flag*/\
+		0,					/* Motion X Status Flag*/\
+		0,					/* Motion Y Status Flag*/\		
 		0,					/* Current Velocity */\
 }
 
@@ -162,9 +171,12 @@ struct sDriverStatus
 	uint32_t TargetPosCmd;
 	float    TargetPosXCmd;
 	float    TargetPosYCmd;
-	float    VelocityCmd;
-	uint8_t  VelUpdFlag;
-	uint8_t  MotionStatus;
+	float    HostPosXCmd;
+	float    HostPosYCmd;
+	float    VelocityXCmd;
+	float	 VelocityYCmd;
+	uint8_t  MotionXStatus;
+	uint8_t  MotionYStatus;
 	int32_t  CurrentVelocity;
 };
 
