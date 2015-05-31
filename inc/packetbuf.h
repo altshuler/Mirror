@@ -27,9 +27,10 @@
 
 #define UNDEFINED_FORMAT			0
 #define RAYON_BINARY_FORMAT			1
-#define READOUT_BINARY_FORMAT			2
-//#define FCS_FORMAT 					3
+#define READOUT_BINARY_FORMAT		2
+//#define FCS_FORMAT 				3
 #define SYNC_FORMAT 				4
+#define PI_FORMAT 					5
 
 struct sPacketBufHdr
 {
