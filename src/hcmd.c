@@ -61,31 +61,32 @@
 
 #define	NO_CMD					0	//    no cmd 	
 #define	CMD_DRIVE      			1    //Send Driver Direct command
-#define	CMD_SET_STATE			2	//	Set Pedestal State  
-#define	CMD_REQ_IBIT_RES		3	//	Request Pedestal Initiated BIT Results
+#define	CMD_SET_STATE			2	//	Set Mirror State  
+#define	CMD_REQ_IBIT_RES		3	//	Request Mirror Initiated BIT Results
 #define	CMD_KEEP_ALIVE_REQ		4	//	Keep Alive Request
-#define	CMD_GET_STATUS			5	//	Get Pedestal Status 
-#define	CMD_GET_VER				6	//	Get Pedestal Versions 
-#define	CMD_GET_CNT				7	//	Get Pedestal Lifetime Counters 
-#define	CMD_SET_CNT				8	//	Set Pedestal Lifetime Counters 
-#define	CMD_IBIT				9	//	Perform Pedestal IBIT  
+#define	CMD_GET_STATUS			5	//	Get Mirror Status 
+#define	CMD_GET_VER				6	//	Get Mirror Versions 
+#define	CMD_GET_CNT				7	//	Get Mirror Lifetime Counters 
+#define	CMD_SET_CNT				8	//	Set Mirror Lifetime Counters 
+#define	CMD_IBIT				9	//	Perform Mirror IBIT  
 #define	RESP_DRIVE				10	//	Driver Direct command responce
-#define	PEDESTAL_STATUS			11	//	Pedestal Status
-#define	PEDESTAL_CNT			12	//	Pedestal lifetime counters    
-#define	PEDESTAL_VER			13	//	Pedestal versions  
-#define	PEDESTAL_IBIT_RES		14	//	Pedestal Initiated BIT Results  
-#define	PEDESTAL_KA_ACK			15	//	Pedestal Keep Alive Acknowledge    
-#define	PEDESTAL_STATE_ACK		16	//	Pedestal state acknowledge
-#define	PEDESTAL_IBIT_STATUS	17	//	Pedestal IBIT Status
+#define	PEDESTAL_STATUS			11	//	Mirror Status
+#define	PEDESTAL_CNT			12	//	Mirror lifetime counters    
+#define	PEDESTAL_VER			13	//	Mirror versions  
+#define	PEDESTAL_IBIT_RES		14	//	Mirror Initiated BIT Results  
+#define	PEDESTAL_KA_ACK			15	//	Mirror Keep Alive Acknowledge    
+#define	PEDESTAL_STATE_ACK		16	//	Mirror state acknowledge
+#define	PEDESTAL_IBIT_STATUS	17	//	Mirror IBIT Status
 #define	CMD_BOOT				18	// BootLoader Request
 #define	CMD_ENC_OFFSET			19	// Enc Offset
 #define	CMD_ETH_TX_DELAY		20	// ETH Tx Delay Command
 #define	CMD_SET_NETWORK			21	// Set Network Details
 #define	CMD_GET_NETWORK			22	// Get Network Details
-#define	PEDESTAL_NETWORK		23	// Pedestal Network Details
-#define	CMD_TRAVEL_PIN			24	// Open/Close Travel Pin
-#define	CMD_GET_REOSTAT			25	//Get Travel pin Reostat ADC value
-#define	CMD_REOSTAT_RSP			26	//Travel pin Reostat ADC value Response
+#define	PEDESTAL_NETWORK		23	// Mirror Network Details
+#define	CMD_SET_HOME			24	// Set Home Position
+#define	CMD_GET_HOME			25	//Get Home Position
+#define	CMD_HOME_RSP			26	//Get Home Position Responce
+#define	CMD_GO_HOME				27	//Go To Home Position
 
 
 
@@ -95,31 +96,32 @@
 \*************************************************************************/
 static uint16_t cmd_table[] = {
 	DRV_DIR_CMD,		//Send Driver Direct command
-	SET_STATE,			//Set Pedestal State  
-	IBIT_RESULT,		//Request Pedestal Initiated BIT Results
-	GET_KEEP_ALIVE,		//Pedestal Keep Alive request
-	GET_STATUS,			//Get Pedestal Status  
-	GET_VER,			//Get Pedestal Versions
-	GET_CNT,			//Get Pedestal Lifetime Counters  
-	SET_CNT,			//Set Pedestal Counters   
-	SET_IBIT,			//Perform Pedestal IBIT 
+	SET_STATE,			//Set Mirror State  
+	IBIT_RESULT,		//Request Mirror Initiated BIT Results
+	GET_KEEP_ALIVE,		//Mirror Keep Alive request
+	GET_STATUS,			//Get Mirror Status  
+	GET_VER,			//Get Mirror Versions
+	GET_CNT,			//Get Mirror Lifetime Counters  
+	SET_CNT,			//Set Mirror Counters   
+	SET_IBIT,			//Perform Mirror IBIT 
 	DIR_CMD_RSP,		//Driver Direct command responce
-	STATUS_RSP,			//Pedestal Status
-	CNT_RSP,			//Pedestal lifetime counters   
-	VER_RSP,			//Pedestal versions   
-	IBIT_RES,			//Pedestal Initiated BIT Results
-	KEEP_ALIVE_RSP,		//Pedestal Keep Alive Acknowledge   
-	STATE_RSP,			//Pedestal state acknowledge
-	IBIT_STATUS,		//Pedestal IBIT Status
+	STATUS_RSP,			//Mirror Status
+	CNT_RSP,			//Mirror lifetime counters   
+	VER_RSP,			//Mirror versions   
+	IBIT_RES,			//Mirror Initiated BIT Results
+	KEEP_ALIVE_RSP,		//Mirror Keep Alive Acknowledge   
+	STATE_RSP,			//Mirror state acknowledge
+	IBIT_STATUS,		//Mirror IBIT Status
 	BOOT_REQ,			//BootLoader Request
 	SET_ENC_OFFSET,		//Set Abs Encoder Offset
 	SET_ETH_DELAY,		//Set ETH Tx Delay
 	SET_NET_SETTINGS,	//Set Network Settings
 	GET_NET_SETTINGS,	//Get Network Settings
 	NET_RSP,			//Network Settings Responce
-	SET_TRAVEL_PIN,		//Travel Pin Command
-	GET_REOSTAT,		//Get Travel pin Reostat ADC value
-	REOSTAT_RSP,		//Travel pin Reostat ADC value Response
+	SET_HOME_POS,		//Set Home Position
+	GET_HOME_POS,		//Get Home Position
+	GET_HOME_RSP,		//Get Home Position Responce
+	GO_TO_HOME_POS,		//Go To Home Position
 	0
 };
 
@@ -145,6 +147,7 @@ extern uSSI AbsEncoderXData;
 extern uSSI AbsEncoderYData;
 
 extern struct sIpSettings ipSettings;
+extern struct sPedestalParams	SysParams;
 
 
 void cmdCompletionCallback(void *);
@@ -254,6 +257,9 @@ int processHostCommand(void *b,uint32_t ch_num)
 	PACKETBUF_HDR *resp_packet=NULL;
 	PACKETBUF_HDR *drive_packet=NULL;
 	MSG_HDR msg;
+	uint32_t PosX;
+	uint32_t PosY;
+	uint8_t memflag=0;
 	
 	//CB_CMD_COMPLETION_FN_t waitForPostResponseCommandCompletion=NULL;
 	//uint16_t ret_len;
@@ -306,15 +312,15 @@ int processHostCommand(void *b,uint32_t ch_num)
 			break;
 
 		case CMD_GET_CNT:
-			memset(pr, 0, ((sizeof(char))*60));
-			pr->length=LifetimeCounterResp(PAYLOAD_START(pr));
-			resp_packet=makeSinglePacketResponse(&cmdResBuffers,pr,RESP_BUFFER_GET_TIMEOUT);
+			//memset(pr, 0, ((sizeof(char))*60));
+			//pr->length=LifetimeCounterResp(PAYLOAD_START(pr));
+			//resp_packet=makeSinglePacketResponse(&cmdResBuffers,pr,RESP_BUFFER_GET_TIMEOUT);
 			break;
 
 		case CMD_SET_CNT:
-			memset(pr, 0, ((sizeof(char))*60));
-			pr->length=LifetimeCounterSet(((char*)PAYLOAD_DATA_START(b)),PAYLOAD_START(pr));
-			resp_packet=makeSinglePacketResponse(&cmdResBuffers,pr,RESP_BUFFER_GET_TIMEOUT);
+			//memset(pr, 0, ((sizeof(char))*60));
+			//pr->length=LifetimeCounterSet(((char*)PAYLOAD_DATA_START(b)),PAYLOAD_START(pr));
+			//resp_packet=makeSinglePacketResponse(&cmdResBuffers,pr,RESP_BUFFER_GET_TIMEOUT);
 			break;
 
 		case CMD_IBIT:
@@ -410,17 +416,53 @@ int processHostCommand(void *b,uint32_t ch_num)
 			break;	
 
 
-		case CMD_TRAVEL_PIN:
-			
+		case CMD_SET_HOME:
+
+			key=__disableInterrupts();
+			PosX=(uint32_t)SysParams.AxisXPosition;
+			PosY=(uint32_t)SysParams.AxisYPosition; 
+			__restoreInterrupts(key);
+			SetApplicationData(&PosX,POS_X_HOME_OFFSET_ADDR);
+			vTaskDelay(10);
+			SetApplicationData(&PosY,POS_Y_HOME_OFFSET_ADDR);
 			
 			break;
 
 
 
-		case CMD_GET_REOSTAT:
+		case CMD_GET_HOME:
+			
+			GetApplicationData(&PosX,POS_X_HOME_OFFSET_ADDR);
+			vTaskDelay(10);
+			GetApplicationData(&PosY,POS_Y_HOME_OFFSET_ADDR);
+			
+			memset(pr, 0, ((sizeof(char))*60));
+			pr->length=GetHomePosition(PAYLOAD_START(pr),(float)PosX,(float)PosY);
+			resp_packet=makeSinglePacketResponse(&cmdResBuffers,pr,RESP_BUFFER_GET_TIMEOUT);
 
 			
 			break;
+
+		case CMD_GO_HOME:
+			
+			if(ERROR == GetApplicationData(&PosX,POS_X_HOME_OFFSET_ADDR))
+				memflag=1;
+			
+			vTaskDelay(10);
+			
+			if(ERROR == GetApplicationData(&PosY,POS_Y_HOME_OFFSET_ADDR))
+				memflag=1;
+
+
+			if(!memflag)
+				GoHomePosition((float)PosX, (float)PosY);
+
+
+			memset(pr, 0, ((sizeof(char))*60));
+			pr->length=GetHomePosition(PAYLOAD_START(pr),(float)PosX,(float)PosY);
+			resp_packet=makeSinglePacketResponse(&cmdResBuffers,pr,RESP_BUFFER_GET_TIMEOUT);
+			
+			break;			
 					
 		default:
 			
