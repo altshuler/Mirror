@@ -280,110 +280,7 @@ void readoutRxServerTask(void *para)
 
 
 
-#ifdef KUKU
-void readoutTxServerTask(void *para)
-{
-	MSG_HDR readout_out_msg;
-	PACKETBUF_HDR *p=NULL;
-	PACKETBUF_HDR *next=NULL;
-	
-	uint32_t key;
-	
-	GIO_Attrs gioAttrs = GIO_ATTRS;
-	Usart_ChanParams chanParams;
-	int status	 =	0;
-	//uint16_t fcs;
-	char devName[16];
-	char devIdName[5];
-	
-	struct sReadoutServerParam *readoutCommParam=NULL;
-	
-	readoutCommParam=(struct sReadoutServerParam *)para;
 
-	assert (NULL != readoutCommParam);
-
-  	strcpy(devName,"/Uart");
-	strcat(devName, itoa(readoutCommParam->devId,devIdName,10));
-
-	initReadoutTxStat(&intReadout.txPack.stat);
-	
-	/*
-	* Initialize channel attributes.
-	*/
-	gioAttrs.nPackets = 2;
-	
-
-	#if defined(USE_DMA) && defined(USE_TX_DMA_USART234)
-	chanParams.hDma = &readoutUartDma.set[TX_DMA];
-	#else
-	chanParams.hDma = NULL;
-	#endif
-	/* 
-	 * Initialize UART
-	 */
-	hReadoutUart_OUT = GIO_create(devName,IODEV_OUTPUT,NULL,&chanParams,&gioAttrs);
-	
-	key=__disableInterrupts();
-	uartOutputHandle[readoutServerConfig.devId]=hReadoutUart_OUT;
-	__restoreInterrupts(key);
-	
-	for (;;)
-	{
-		if (xQueueReceive(readoutOutQ,&readout_out_msg,portMAX_DELAY)==pdPASS)
-		{
-			if (readout_out_msg.hdr.bit.type==MSG_TYPE_PACKET)
-			{
-				if (readout_out_msg.buf)
-				{
-					p=(PACKETBUF_HDR *)readout_out_msg.buf;
-					while (p)
-					{
-						next=p->h.link; // Detach from list
-						p->h.link=NULL;
-						if (p->dlen)
-						{
-							
-							if (hReadoutUart_OUT)
-							{
-								// For debugging only
-								//localPbuf=(volatile Uint8 *)PACKET_DATA(p);
-								//localBufLen=p->Length;
-								//
-								status = GIO_write(hReadoutUart_OUT, PACKETBUF_DATA(p), &p->dlen);
-								if (status==IODEV_COMPLETED)
-								{
-									updateReadoutTxStat(&intReadout.txPack.stat, p);
-								}
-								else if (status==IODEV_EBADIO)
-								{
-									GIO_delete(hReadoutUart_OUT);
-
-									// For debugging only 
-									//vTaskDelay(50);
-									//
-									
-									hReadoutUart_OUT = GIO_create(devName,IODEV_OUTPUT,NULL,&chanParams,&gioAttrs);
-									key=__disableInterrupts();
-									//uartOutputHandle[gpsServerConfig.devId]=hCtlUart_OUT[readoutCommParam->readoutId];
-									__restoreInterrupts(key);
-								}
-								
-							}
-								
-						}
-						retMemBuf(p);
-						p=next;
-					}
-					
-				}
-			}
-		}
-		else if (readout_out_msg.hdr.bit.type==MSG_TYPE_CMD)
-		{
-		}
-	}
-}
-#else
 void readoutTxServerTask(void *para)
 {
 	MSG_HDR readout_out_msg;
@@ -439,7 +336,7 @@ void readoutTxServerTask(void *para)
 	
 	for (;;)
 	{
-		ReadoutData=GetReadoutData();
+		//ReadoutData=GetReadoutData();
 		
 		if (hReadoutUart_OUT)
 		{
@@ -466,7 +363,7 @@ void readoutTxServerTask(void *para)
 }
 
 
-#endif
+
 
 static int readoutRxCallback(void *arg, int status, void *addr, size_t size)
 {
@@ -500,7 +397,7 @@ void updateReadoutTxStat(struct sToReadout_packetizerStat *stat, PACKETBUF_HDR*p
 	}
 }
 
-
+#ifdef KUKU
 int32_t GetReadoutData(void)
 {
 	int32_t enc_data=0;
@@ -551,5 +448,5 @@ int32_t GetReadoutData(void)
 		//enc_data=longBE2LE(enc_data);
 return enc_data;
 }
-
+#endif
 
