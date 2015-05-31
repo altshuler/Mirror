@@ -38,6 +38,7 @@
 #include "flashcsum.h"
 
 
+
 extern xQueueHandle 	DriveIntQueue;
 extern struct sDriverStatus DriveStatus;
 extern struct sPedestalParams	SysParams;
@@ -51,7 +52,7 @@ extern __IO uint16_t ADC1ConvertedValue[2];
 //extern uSSI AbsEncoderData;
 
 
-uint32_t AbsEncXOffset=0x57878; //0x57878- Pedestal-1,  0x431c8- Pedestal-2, 0x4010b- Pedestal-3         last pedestal - 0x12897
+uint32_t AbsEncXOffset=0x57878; 
 uint32_t AbsEncYOffset=0x57878;
 
 #define APPLICATION_ADDRESS   (uint32_t)0x08020000
@@ -72,8 +73,23 @@ void CBITTask(void * pvParameters)
 	uint8_t  CbitCnt=0;
 	uint16_t Brakes_Pwm_period;
 
+	
 	SysParams.State=SYS_STATE_STDBY;
-					
+
+	PedestalStatus(NULL);
+
+	#ifdef KUKU
+	if(ERROR==InitAbsolutePosition())
+	{	
+		// Failed to Initialize Absolute positions
+		while(1)
+		{
+			vTaskSuspend(NULL);
+			vTaskDelay(10);
+		}
+	}
+	#endif
+	
 	while(1)
 	{
 		CbitCnt++;
