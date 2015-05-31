@@ -1,11 +1,11 @@
 /**
 * @file board.h
-* @brief PEDESTAL board level definitions
+* @brief MIRROR board level definitions
 *
 * @author Evgeny Altshuler
 *
 * @version 0.0.1
-* @date 19.02.2014
+* @date 25.03.2015
 */
 #ifndef _BOARD_H
 #define _BOARD_H
