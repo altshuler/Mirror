@@ -41,11 +41,10 @@
 /*Declaration of global variables*/
 /**************************************************************************/
 struct sPacketHeader 	PacketHeader={SYNC,0,0,3,0,0,0,0,0,0};
-struct sPedestalParams	SysParams=PEDESTAL_DEFAULT_PARAMS;
-struct sVersion 		Versions=PEDESTAL_VERSIONS;
+struct sPedestalParams	SysParams=MIRROR_DEFAULT_PARAMS;
+struct sVersion 		Versions=MIRROR_VERSIONS;
 struct sIbitStatus		IbitStatus={2,0,1};
 
-float LifetimeCnt=1.0;
 uint16_t Counter=0;
 uint8_t Travel_Pin_Pos;
 uint8_t Travel_Pin_Cmd=PIN_CMD_NA;
@@ -130,28 +129,35 @@ unsigned char SetDriveRsp(char *cmd, char *buf, char ch)
 
 unsigned char  SetStateAck(char *cmd,char *buf)
 {
-unsigned char  len=0;
-uint32_t StateTranRes=0;
-uint32_t ReqState;
-uint32_t ReqSubState;
-uint32_t ReadoutRate;
-uint16_t Checksum;
-MSG_HDR msg;	
-MSG_HDR msg1;
-uint32_t key;
-float Pos1;
-float Pos2;
-float Vel;
-uint8_t	MotionStatus;
+	unsigned char  len=0;
+	uint32_t StateTranRes=0;
+	uint32_t ReqState;
+	uint32_t ReqSubState;
+	uint32_t ReadoutRate;
+	uint16_t Checksum;
+	MSG_HDR msg;	
+	MSG_HDR msg1;
+	uint32_t key;
+	float Pos1;
+	float Pos2;
+	float XVel;
+	float YVel;
+	float AbsEncoderXDeg;
+	float AbsEncoderYDeg;
+	float TargXPos;
+	float TargYPos;
+
+
 
 	ReqState=*((uint32_t *)(cmd+40));
 	ReqSubState=*((uint32_t *)(cmd+44));
 	ReadoutRate=*((uint32_t *)(cmd+64));
 	Pos1=*((float *)(cmd+48))/*DegToCnt(*((float *)(cmd+48)))*/;
 	Pos2=*((float *)(cmd+52))/*DegToCnt(*((float *)(cmd+52)))*/;
-	Vel=*((float *)(cmd+56));
+	XVel=*((float *)(cmd+56));
+	YVel=*((float *)(cmd+60));
 	
-#ifdef KUKU			
+		
 	if(Pos1>MAX_ANGLE)
 		Pos1=MAX_ANGLE;
 	else if (Pos1<MIN_ANGLE)
@@ -162,28 +168,79 @@ uint8_t	MotionStatus;
 		Pos2=MAX_ANGLE;
 	else if (Pos2<MIN_ANGLE)
 		Pos2=MIN_ANGLE;
+	
 
-	if(Vel>MAX_VELOCITY)
-		Vel=MAX_VELOCITY;
-	else if (Vel<MIN_VELOCITY)
-		Vel=MIN_VELOCITY;
+	if(XVel>MAX_VELOCITY)
+		XVel=MAX_VELOCITY;
+	else if (XVel<MIN_VELOCITY)
+		XVel=MIN_VELOCITY;
 	
-	
+	if(YVel>MAX_VELOCITY)
+		YVel=MAX_VELOCITY;
+	else if (YVel<MIN_VELOCITY)
+		YVel=MIN_VELOCITY;
 
 	if(ReadoutRate<MIN_READOUT_RATE)
 		ReadoutRate=MIN_READOUT_RATE;
 	else if(ReadoutRate>MAX_READOUT_RATE)
 		ReadoutRate=MAX_READOUT_RATE;
-#endif	
 
+
+	if(AbsEncoderXData.ssiData.Error==0)
+	{
+		key=__disableInterrupts();
+		SysParams.AbsEncStatus=STATUS_FAIL;
+		__restoreInterrupts(key);
+	}
+	else
+	{
+		key=__disableInterrupts();
+		AbsEncoderXDeg=CntToDeg(AbsEncoderXData.raw32Data, AbsEncXOffset);
+		__restoreInterrupts(key);
+		if(AbsEncoderXDeg>180.0)
+			AbsEncoderXDeg-=360.0;
+	}
+
+
+	 //EncDegreesData(AbsEncoderXData, &AbsEncoderXDeg,  AbsEncXOffset);
+
+
+
+	if(AbsEncoderYData.ssiData.Error==0)
+	{
+		key=__disableInterrupts();
+		SysParams.AbsEncStatus=STATUS_FAIL;
+		__restoreInterrupts(key);
+	}
+	else
+	{
+		key=__disableInterrupts();
+		AbsEncoderYDeg=CntToDeg(AbsEncoderYData.raw32Data, AbsEncYOffset);
+		__restoreInterrupts(key);
+		if(AbsEncoderYDeg>180.0)
+			AbsEncoderYDeg-=360.0;
+	}	
+
+	AbsEncoderXDeg=AbsEncoderXDeg*PI/0.00018;	//X position in uRadians 	 TODO:Remove PI defines
+	AbsEncoderYDeg=AbsEncoderYDeg*PI/0.00018;	//Y position in uRadians
+
+	TargXPos=(Pos1-AbsEncoderXDeg)*XRADIUS;
+	TargYPos=(Pos2-AbsEncoderYDeg)*YRADIUS;
+
+	if(TargXPos<0.0)
+		TargXPos-=BCKL_X_OFFSET;
+	if(TargYPos>0.0)
+		TargYPos-=BCKL_Y_OFFSET;
+
+		
 	key=__disableInterrupts();
-	DriveStatus.TargetPosXCmd=Pos1*RADIUS;
-	DriveStatus.TargetPosYCmd=Pos2*RADIUS;
-	DriveStatus.Position1Cmd=  DegToCnt(Pos1, AbsEncXOffset);
-	DriveStatus.Position2Cmd=  DegToCnt(Pos2, AbsEncXOffset);
-	DriveStatus.VelocityCmd= Vel;
-	DriveStatus.VelUpdFlag= *((uint8_t *)(cmd+60));
-	/*CurrentOffset*/ SysParams.RS422MesRate = ReadoutRate;
+	DriveStatus.HostPosXCmd=Pos1;
+	DriveStatus.HostPosYCmd=Pos2;	
+	DriveStatus.TargetPosXCmd=TargXPos;
+	DriveStatus.TargetPosYCmd=TargYPos;
+	DriveStatus.VelocityXCmd= XVel*XRADIUS;
+	DriveStatus.VelocityYCmd= YVel*YRADIUS;
+	SysParams.RS422MesRate = ReadoutRate;
 	__restoreInterrupts(key);
 	
 	RS_422_Rate=(portTickType)(1000/ReadoutRate);
@@ -241,30 +298,77 @@ uint8_t	MotionStatus;
 						key=__disableInterrupts();
 						SysParams.State=ReqState;
 						SysParams.SubState=ReqSubState;
-						MotionStatus=DriveStatus.MotionStatus;
-						DriveStatus.MotionStatus=MOTION_ACTIVE;
 						DriveStatus.TargetPosCmd=DriveStatus.Position1Cmd;
 						__restoreInterrupts(key);
 						
-						if(SysParams.SubState==SYS_SUB_STATE_HOME)
-							msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
-						else
-							msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);
-						
-							msg.buf=NULL;
-
-						/*	
-						if(DriveStatus.VelUpdFlag==0)
+						if(SysParams.SubState==SYS_STPR_1_SELECT)
 						{
+							msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
+							msg.buf=NULL;
 							msg.data=DRV_STATE_VELOCITY_SET;
 							xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
-							vTaskDelay(1);
-						}
-						*/
-					
-						
-							msg.data=DRV_STATE_MOVE_SET;
+
+							vTaskDelay(10);
+							
+							msg.data=DRV_STATE_MOVE_REL_SET;
 							xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+
+							vTaskDelay(10);
+							
+							key=__disableInterrupts();
+							DriveStatus.MotionXStatus=MOTION_ACTIVE;
+							__restoreInterrupts(key);
+
+						}	
+						else if(SysParams.SubState==SYS_STPR_2_SELECT)
+						{
+							msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);
+							msg.buf=NULL;
+							msg.data=DRV_STATE_VELOCITY_SET;
+							xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+						
+							vTaskDelay(10);
+							
+							msg.data=DRV_STATE_MOVE_REL_SET;
+							xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+
+							vTaskDelay(10);
+							
+							key=__disableInterrupts();
+							DriveStatus.MotionYStatus=MOTION_ACTIVE;
+							__restoreInterrupts(key);
+
+						}
+						else 
+						{
+							msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
+							msg.buf=NULL;
+							msg.data=DRV_STATE_VELOCITY_SET;
+							xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+						
+							msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);
+							xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+
+							vTaskDelay(10);
+
+							msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
+							msg.data=DRV_STATE_MOVE_REL_SET;
+							xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+
+							msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);
+							xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+
+							vTaskDelay(10);
+							
+							key=__disableInterrupts();
+							DriveStatus.MotionXStatus=MOTION_ACTIVE;
+							DriveStatus.MotionYStatus=MOTION_ACTIVE;
+							__restoreInterrupts(key);
+							
+						}						
+
+						
+
 					//}
 					//else
 					//	StateTranRes=ILLEGAL_TRANS;
@@ -384,14 +488,6 @@ uint8_t	MotionStatus;
 		key=__disableInterrupts();
 		SysParams.State=ReqState;
 		SysParams.SubState=ReqSubState;
-		
-		#ifdef KUKU		
-		if((ReqState==SYS_STATE_OPERATE)&&(ReqSubState==SYS_SUB_STATE_SCAN))
-			SysParams.AngVelocity=150;
-		else
-			SysParams.AngVelocity=0;
-		#endif
-		
 		__restoreInterrupts(key);
 	}
 
@@ -433,11 +529,8 @@ unsigned char  PedestalStatus(char *buf)
 	Counter++;
 	if(Counter>36000)	//Instead RTC -Temporary solution
 	{
-		LifetimeCnt+=1.0;
 		Counter=0;
 
-		if(LifetimeCnt>10000.0)
-			LifetimeCnt=0.0;
 	}
 
 
@@ -509,16 +602,16 @@ unsigned char  PedestalStatus(char *buf)
 			AllOkFlag=GetAllFlags();
 			key=__disableInterrupts();
 			SysParams.AllOkFlag=AllOkFlag;
-			SysParams.Azimut=/*Enc*/AbsEncoderYDeg*PI/0.00018; // Position X in uRadians
-			VelSample=(SysParams.Azimut-PrevPosition)*1000.0/((float)TxDelayValue+(float)RX_DELAY);
-			PrevPosition=SysParams.Azimut;
+			SysParams.AxisYPosition=/*Enc*/AbsEncoderYDeg*PI/0.00018; // Position X in uRadians
+			VelSample=(SysParams.AxisYPosition-PrevPosition)*1000.0/((float)TxDelayValue+(float)RX_DELAY);
+			PrevPosition=SysParams.AxisYPosition;
 		    SysParams.Timestamp+=(uint32_t)TxDelayValue+(uint32_t)RX_DELAY;
 			__restoreInterrupts(key);
 
 			Emaverage  = lpf_ema_float(VelSample, Emaverage, 0.5);
 
 			key=__disableInterrupts();
-			SysParams.AngVelocity = AbsEncoderXDeg*PI/0.00018/*Emaverage*/;// Position Y in uRadians
+			SysParams.AxisXPosition = AbsEncoderXDeg*PI/0.00018/*Emaverage*/;// Position Y in uRadians
 			__restoreInterrupts(key);
 
 
@@ -542,6 +635,7 @@ unsigned char  PedestalStatus(char *buf)
 }
 
 
+#ifdef KUKU
 unsigned char  LifetimeCounterResp(char *buf)
 {
 	unsigned char  len=0;
@@ -586,7 +680,7 @@ unsigned char  LifetimeCounterSet(char *cmd,char *buf)
 	
 		return len;
 }
-
+#endif
 
 unsigned char  SetNetworkDetails(char *cmd,char *buf)
 {
@@ -1271,73 +1365,30 @@ return error;
 
 
 
-void  SetTravelPinCmd(char *cmd)
-{
-	uint32_t TravelPinCmd;	
-	uint32_t key;
-	float 	Azimuth;
-	uint8_t MotionStatus;
-	
-	TravelPinCmd=*((uint32_t *)(cmd+40));
-		
-	key=__disableInterrupts();
- 	Azimuth=SysParams.Azimut; 
-	MotionStatus=DriveStatus.MotionStatus;
- 	__restoreInterrupts(key);
-
-	if (Azimuth>180.0)
-		Azimuth=Azimuth-360.0;
-	
-	if(MotionStatus == MOTION_NOT_ACTIVE)
-	{
-		if(((Azimuth>89.5)&&(Azimuth<90.5))||((Azimuth<-89.5)&&(Azimuth>-90.5))||((Azimuth>-0.5)&&(Azimuth<0.5)))
-		{
-			if (TravelPinCmd)
-			{
-				if(!(ADC1ConvertedValue[1]<PIN_OPENED_POSITION))
-				{
-					Travel_Pin_Cmd=PIN_CMD_OPEN;
-					GPIO_SetBits(PIN_ON_GPIO_PORT, PIN_ON_PIN); //Enable Travel Pin Bridge
-					TIM4->CCR3 = 0x0;			//Open Travel Pin
-					TIM4->CCR4 = Channel4Pulse;
-				}
-			}
-			else
-			{
-				if(!(ADC1ConvertedValue[1]>PIN_CLOSED_POSITION))
-				{
-					Travel_Pin_Cmd=PIN_CMD_CLOSE;
-					GPIO_SetBits(PIN_ON_GPIO_PORT, PIN_ON_PIN); //Enable Travel Pin Bridge
-					TIM4->CCR3 = Channel3Pulse;//Close Travel Pin
-					TIM4->CCR4 = 0x0;
-				}
-				
-				
-				
-			}
-		}
-	}
-}
-
-
-
-unsigned char  GetTravelPinReostat(char *buf)
+unsigned char  GetHomePosition(char *buf, float xpos, float ypos)
 {
 	unsigned char  len=0;
 	uint16_t Checksum;
+	char *temp;
 
 
 	if (buf!=NULL)
 	{
-		memcpy(buf+40,&ADC1ConvertedValue[1],sizeof(uint16_t)); 
+		temp=buf+40;
+		len+=sizeof(float);
+		memcpy(temp, &xpos, sizeof(float));
+
+		temp+=sizeof(float);
+		len+=sizeof(float);
+		memcpy(temp, &ypos, sizeof(float));
 		
-		len=sizeof(uint16_t);
+
 		
 		Checksum=PacketChecksum(buf+40,len);
 
 		PacketHeader.Sync_Checksum =SYNC|(((uint32_t)Checksum)<<16);
 		PacketHeader.MessageSize=(uint32_t)(len+sizeof(struct sPacketHeader));
-		PacketHeader.Opcode=REOSTAT_RSP;
+		PacketHeader.Opcode=GET_HOME_RSP;
 		PacketHeader.DestinationID=1;
 		PacketHeader.MsgCounter++;
 		
@@ -1345,6 +1396,160 @@ unsigned char  GetTravelPinReostat(char *buf)
 	}
 		return len;
 }
+
+
+
+void GoHomePosition(float xpos, float ypos)
+{
+	MSG_HDR msg;	
+	uint32_t key;
+	float AbsEncoderXDeg;
+	float AbsEncoderYDeg;
+	float TargXPos;
+	float TargYPos;
+	
+	if(SysParams.State == SYS_STATE_OPERATE)
+	{
+		if((DriveStatus.MotionXStatus==MOTION_NOT_ACTIVE)&&(DriveStatus.MotionYStatus==MOTION_NOT_ACTIVE))
+		{
+			if(AbsEncoderXData.ssiData.Error==0)
+			{
+				key=__disableInterrupts();
+				SysParams.AbsEncStatus=STATUS_FAIL;
+				__restoreInterrupts(key);
+			}
+			else
+			{
+				key=__disableInterrupts();
+				AbsEncoderXDeg=CntToDeg(AbsEncoderXData.raw32Data, AbsEncXOffset);
+				__restoreInterrupts(key);
+				if(AbsEncoderXDeg>180.0)
+					AbsEncoderXDeg-=360.0;
+			}
+			
+			
+			 //EncDegreesData(AbsEncoderXData, &AbsEncoderXDeg,  AbsEncXOffset);
+			
+			
+			
+			if(AbsEncoderYData.ssiData.Error==0)
+			{
+				key=__disableInterrupts();
+				SysParams.AbsEncStatus=STATUS_FAIL;
+				__restoreInterrupts(key);
+			}
+			else
+			{
+				key=__disableInterrupts();
+				AbsEncoderYDeg=CntToDeg(AbsEncoderYData.raw32Data, AbsEncYOffset);
+				__restoreInterrupts(key);
+				if(AbsEncoderYDeg>180.0)
+					AbsEncoderYDeg-=360.0;
+			}	
+			
+			AbsEncoderXDeg=AbsEncoderXDeg*PI/0.00018;	//X position in uRadians	 TODO:Remove PI defines
+			AbsEncoderYDeg=AbsEncoderYDeg*PI/0.00018;	//Y position in uRadians
+
+
+			
+			TargXPos=(xpos-AbsEncoderXDeg)*XRADIUS;
+			TargYPos=(ypos-AbsEncoderYDeg)*YRADIUS;
+			
+			if(TargXPos<0.0)
+				TargXPos-=BCKL_X_OFFSET;
+			if(TargYPos>0.0)
+				TargYPos-=BCKL_Y_OFFSET;
+
+		
+			key=__disableInterrupts();
+			DriveStatus.HostPosXCmd=xpos;
+			DriveStatus.HostPosYCmd=ypos;	
+			DriveStatus.TargetPosXCmd=TargXPos;
+			DriveStatus.TargetPosYCmd=TargYPos;
+			__restoreInterrupts(key);
+
+
+									
+			msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
+			msg.buf=NULL;
+			msg.data=DRV_STATE_MOVE_SET;
+			xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+
+			msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);
+			xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+
+
+
+			vTaskDelay(10);
+							
+			key=__disableInterrupts();
+			DriveStatus.MotionXStatus=MOTION_ACTIVE;
+			DriveStatus.MotionYStatus=MOTION_ACTIVE;
+			__restoreInterrupts(key);
+		}	
+	}
+}
+
+
+
+ErrorStatus InitAbsolutePosition(void)
+{
+	MSG_HDR msg;
+	uint32_t key;
+
+	
+	vTaskDelay(1000);	
+
+
+	key=__disableInterrupts();
+	DriveStatus.TargetPosXCmd=SysParams.AxisXPosition*XRADIUS;
+	DriveStatus.TargetPosYCmd=SysParams.AxisYPosition*YRADIUS;
+	__restoreInterrupts(key);
+		
+	if(SysParams.AbsEncStatus==STATUS_OK)
+	{
+		msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
+		msg.buf=NULL;
+		msg.data=DRV_STATE_POS_SET;
+		if(pdFAIL==xQueueSend(DriveIntQueue,&msg,portMAX_DELAY))
+			return ERROR;
+		
+		msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);
+		if(pdFAIL==xQueueSend(DriveIntQueue,&msg,portMAX_DELAY))
+			return ERROR;
+		
+		return SUCCESS;
+	}
+	else
+		return ERROR;
+}
+
+
+ErrorStatus EncDegreesData(uSSI enc, float *deg,  float offset)
+{
+	uint32_t key;
+
+	if(enc.ssiData.Error==0)
+	{
+		key=__disableInterrupts();
+		SysParams.AbsEncStatus=STATUS_FAIL;
+		__restoreInterrupts(key);
+		
+		return ERROR;
+	}
+	else
+	{
+		key=__disableInterrupts();
+		*deg=CntToDeg(enc.raw32Data, offset);
+		__restoreInterrupts(key);
+		if(*deg>180.0)
+			*deg-=360.0;
+
+		return SUCCESS;
+	}
+	
+}
+
 
 
 
