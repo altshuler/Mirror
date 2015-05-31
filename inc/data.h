@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "stm32f2xx.h"
 #include "Eeprom.h"
+#include "AbsEncoderSSI.h"
 
 /*************************************************************************\
 *******************    Command Access Protection     **********************
@@ -23,8 +24,9 @@
 #define SYS_STATE_SHTDWN 	6
 
 /*System Sub States*/
-#define SYS_SUB_STATE_HOME 		0
-#define SYS_SUB_STATE_SCAN 		1
+#define SYS_STPR_1_SELECT 		0
+#define SYS_STPR_2_SELECT 		1
+#define SYS_STPR_1_2_SELECT 	2
 
 #define STATUS_OK	0
 #define STATUS_FAIL	1
@@ -46,9 +48,9 @@
 #define MIN_READOUT_RATE 250
 #define MAX_READOUT_RATE 1000	//4000
 
-#define MIN_ANGLE 		-89.999
-#define MAX_ANGLE  		89.999
-#define MAX_VELOCITY 	150.0
+#define MIN_ANGLE 		-10000.0 //uRad
+#define MAX_ANGLE  		10000.0  //uRad
+#define MAX_VELOCITY 	564.0 //uRad/sec
 #define MIN_VELOCITY	0.0
 
 #define PIN_POS_OPEN		1
@@ -71,18 +73,21 @@
 
 #define  EDGE_PROXIMITY 	100  //100 counts= 0.0977 deg
 
-#define PI      	3.1415926535897932384626433832795029
-#define RADIUS		0.000177
-#define MICRO		1000000.0
+#define PI      		3.14159265358979f	//3.1415926535897932384626433832795029
+#define XRADIUS			0.0001768718	 //0.0001754564	//0.000177
+#define YRADIUS			0.0001776837	//0.0001763852	//0.000177
+#define MICRO			1000000.0
+#define BCKL_X_OFFSET		50.0*XRADIUS
+#define BCKL_Y_OFFSET		-50.0*YRADIUS
 
 
 
-#define PEDESTAL_DEFAULT_PARAMS \
+#define MIRROR_DEFAULT_PARAMS \
 {\
 		SYS_STATE_INIT,		/* System State */\
-		SYS_SUB_STATE_HOME,	/* System Sub State */\
-		90.0,				/* Azimut  */\
-		0.0,				/* Angular Velocity */\
+		SYS_STPR_1_SELECT,	/* Stepper Select */\
+		0.0,				/* AxisYPosition  */\
+		0.0,				/* AxisXPosition */\
 		25.0,				/* Controller Temperature */\
 		24.0,				/* Protected Voltage */\
 		24.0,				/* Motor Voltage */\
@@ -118,15 +123,15 @@
 		0					/*Timestamp  */\
 }
 
-#define PEDESTAL_VERSIONS \
+#define MIRROR_VERSIONS \
 {\
 		0,			/* SW Version major number  */\
 		0,			/* SW Version middle number */\
-		3,			/* SW Version minor number   */\
-		14,			/* SW Date year  */\
-		3,			/* SW Date month */\
-		4,			/* SW Date day */\
-		"PEDESTAL SW ver: 0.0.2 FW ver: 0.2",			/* SW Version description -34 characters */\
+		5,			/* SW Version minor number   */\
+		15,			/* SW Date year  */\
+		5,			/* SW Date month */\
+		27,			/* SW Date day */\
+		"MIRROR SW ver:   0.0.5 FW ver: 0.2",			/* SW Version description -34 characters */\
 		0,			/* FW Version major number  */\
 		2,			/* FW Version minor number */\
 		14,			/* FW Date year */\
@@ -188,8 +193,8 @@ struct sPedestalParams
 {
 	uint32_t State;
 	uint32_t SubState;
-	float 	 Azimut;
-	float	 AngVelocity;
+	float 	 AxisYPosition;
+	float	 AxisXPosition;
 	float	 ControllerTemp;
 	float	 Vprotected;
 	float	 Vmotor;
@@ -231,8 +236,8 @@ unsigned char SetDriveRsp(char *cmd, char *buf, char ch);
 unsigned char  SetStateAck(char * cmd,char *buf);
 unsigned char BuildHeader(char *buf,struct sPacketHeader *header);
 unsigned char  PedestalStatus(char *buf);
-unsigned char  LifetimeCounterResp(char *buf);
-unsigned char  LifetimeCounterSet(char *cmd,char *buf);
+//unsigned char  LifetimeCounterResp(char *buf);
+//unsigned char  LifetimeCounterSet(char *cmd,char *buf);
 unsigned char  VersionResp(char *buf);
 unsigned char  IBITResults(char *buf);
 unsigned char  KeepAliveAck(char *buf);
@@ -257,9 +262,11 @@ uint8_t Travel_Pin_Control(void);
 unsigned char  SetNetworkDetails(char *cmd,char *buf);
 unsigned char  NetworkDetailsResp(char *buf, uint32_t Status);
 unsigned char FactoryIpResp(char *buf, uint32_t addr);
-void  SetTravelPinCmd(char *cmd);
-unsigned char  GetTravelPinReostat(char *buf);
+unsigned char  GetHomePosition(char *buf, float xpos, float ypos);
+void GoHomePosition(float xpos, float ypos);
+ErrorStatus InitAbsolutePosition(void);
 float lpf_ema_float(float sample, float Emaverage, float alpha);
+ErrorStatus EncDegreesData(uSSI enc, float *deg,  float offset);
 
 
 

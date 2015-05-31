@@ -1,6 +1,6 @@
 /**
 * @file drive_comm.h
-* @brief PEDESTAL drive_comm definitions
+* @brief MIRROR drive_comm definitions
 *
 * @author Evgeny Altshuler
 *
