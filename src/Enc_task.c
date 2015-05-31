@@ -54,18 +54,6 @@
 /**************************************************************************/
 /* Extern Declarations */
 /**************************************************************************/
-#ifdef KUKU
-#define  PEDESTAL_MOVE  	1<<18 //Pedestal Move  :Current pedestal state     0 - stop       1 - moving
-#define  PEDESTAL_STOP  	0<<18 
-
-#define  PEDESTAL_POS_DIR  1<<19 //Pedestal Move dir  :Current pedestal dir     0 - to negative edge (to left)       1 - to positive edge (to right)
-#define  PEDESTAL_NEG_DIR  0<<19 
-
-#define  PEDESTAL_NEAR_EDGE  	1<<20 //Pedestal in Sector Edge   : 0 - pedestal far from edge  , 1 - near edge (+/- 0.05 deg - TBR)
-#define  PEDESTAL_FAR_EDGE  	0<<20 
-
-#define  EDGE_PROXIMITY 	100  //100 counts= 0.0977 deg
-#endif
 #define READOUT_BUFFERS	5
 #define READOUT_BUFFER_SIZE 8
 

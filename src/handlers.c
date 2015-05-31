@@ -58,6 +58,7 @@ extern uSSI AbsEncoderYCnt;
 uint8_t EncXIntFlag=0;
 uint8_t EncYIntFlag=0;
 uint8_t Spi_Enc_Flag=0;
+uint8_t TimEventSelect=0;
 
 extern struct sEmergencyStatus	EmergStatus;
 uint32_t enc;
@@ -189,12 +190,11 @@ int __sPI1_IRQHandler (void * arg)
 		
 		#ifdef RANISHOW
 			
-			if(EncXIntFlag==2)
+			if(EncYIntFlag==2)
 			{
-				AbsEncoderXCnt.rawData[3-EncXIntFlag]=(uint16_t)SPI_I2S_ReceiveData(SPI1);
-				//AbsEncoderCnt.raw32Data=((AbsEncoderCnt.raw32Data&0xFFFFFFFC)>>3);
-				EncXIntFlag=0;
-				msg.hdr.all=MAKE_MSG_HDRTYPE(0, MSG_SRC_ISR_TIM, MSG_TYPE_X_ENC);
+				AbsEncoderYCnt.rawData[3-EncYIntFlag]=(uint16_t)SPI_I2S_ReceiveData(SPI1);
+				EncYIntFlag=0;
+				msg.hdr.all=MAKE_MSG_HDRTYPE(0, MSG_SRC_ISR_TIM, MSG_TYPE_Y_ENC);
 				xQueueSendFromISR(MotionQueue,&msg,&xHigherPriorityTaskWoken);
 				
 				if( xHigherPriorityTaskWoken )
@@ -205,24 +205,24 @@ int __sPI1_IRQHandler (void * arg)
 			}
 			else
 			{
-				AbsEncoderXCnt.rawData[3-EncXIntFlag]=(uint16_t)SPI_I2S_ReceiveData(SPI1);
+				AbsEncoderYCnt.rawData[3-EncYIntFlag]=(uint16_t)SPI_I2S_ReceiveData(SPI1);
 				SPI_I2S_SendData(SPI1,0x5555);
-				EncXIntFlag++;
+				EncYIntFlag++;
 			}	
 		#else
-		EncXIntFlag++;
+		EncYIntFlag++;
 		
-		if(EncXIntFlag==1)
+		if(EncYIntFlag==1)
 		{
-			AbsEncoderXCnt.raw32Data=(uint32_t)SPI_I2S_ReceiveData(SPI1);
-			AbsEncoderXCnt.raw32Data=AbsEncoderXCnt.raw32Data<<16;
+			AbsEncoderYCnt.raw32Data=(uint32_t)SPI_I2S_ReceiveData(SPI1);
+			AbsEncoderYCnt.raw32Data=AbsEncoderYCnt.raw32Data<<16;
 			SPI_I2S_SendData(SPI1,0x5555);
 		}
 		else
 		{
-			EncXIntFlag=0;
-			AbsEncoderXCnt.raw32Data|= (uint32_t)SPI_I2S_ReceiveData(SPI1);
-			AbsEncoderXCnt.raw32Data=((AbsEncoderXCnt.raw32Data&0x7FFFFFFF)>>3);
+			EncYIntFlag=0;
+			AbsEncoderYCnt.raw32Data|= (uint32_t)SPI_I2S_ReceiveData(SPI1);
+			AbsEncoderYCnt.raw32Data=((AbsEncoderYCnt.raw32Data&0x7FFFFFFF)>>3);
 			msg.hdr.all=MAKE_MSG_HDRTYPE(0, MSG_SRC_ISR_TIM, MSG_TYPE_ENC);
 			xQueueSendFromISR(MotionQueue,&msg,&xHigherPriorityTaskWoken);
 			
@@ -253,13 +253,11 @@ int __sPI3_IRQHandler (void * arg)
 		
 		#ifdef RANISHOW
 			
-			if(EncYIntFlag==2)
+			if(EncXIntFlag==2)
 			{
-				AbsEncoderYCnt.rawData[3-EncYIntFlag]=(uint16_t)SPI_I2S_ReceiveData(SPI3);
-				//AbsEncoderYCnt.raw32Data=AbsEncoderYCnt.raw32Data>>4;
-				//AbsEncoderCnt.raw32Data=((AbsEncoderCnt.raw32Data&0xFFFFFFFC)>>3);
-				EncYIntFlag=0;
-				msg.hdr.all=MAKE_MSG_HDRTYPE(0, MSG_SRC_ISR_TIM, MSG_TYPE_Y_ENC);
+				AbsEncoderXCnt.rawData[3-EncXIntFlag]=(uint16_t)SPI_I2S_ReceiveData(SPI3);
+				EncXIntFlag=0;
+				msg.hdr.all=MAKE_MSG_HDRTYPE(0, MSG_SRC_ISR_TIM, MSG_TYPE_X_ENC);
 				xQueueSendFromISR(MotionQueue,&msg,&xHigherPriorityTaskWoken);
 				
 				if( xHigherPriorityTaskWoken )
@@ -270,24 +268,24 @@ int __sPI3_IRQHandler (void * arg)
 			}
 			else
 			{
-				AbsEncoderYCnt.rawData[3-EncYIntFlag]=(uint16_t)SPI_I2S_ReceiveData(SPI3);
+				AbsEncoderXCnt.rawData[3-EncXIntFlag]=(uint16_t)SPI_I2S_ReceiveData(SPI3);
 				SPI_I2S_SendData(SPI3,0x5555);
-				EncYIntFlag++;
+				EncXIntFlag++;
 			}	
 		#else
-		EncYIntFlag++;
+		EncXIntFlag++;
 		
-		if(EncYIntFlag==1)
+		if(EncXIntFlag==1)
 		{
-			AbsEncoderYCnt.raw32Data=(uint32_t)SPI_I2S_ReceiveData(SPI3);
-			AbsEncoderYCnt.raw32Data=AbsEncoderYCnt.raw32Data<<16;
+			AbsEncoderXCnt.raw32Data=(uint32_t)SPI_I2S_ReceiveData(SPI3);
+			AbsEncoderXCnt.raw32Data=AbsEncoderXCnt.raw32Data<<16;
 			SPI_I2S_SendData(SPI3,0x5555);
 		}
 		else
 		{
-			EncYIntFlag=0;
-			AbsEncoderYCnt.raw32Data|= (uint32_t)SPI_I2S_ReceiveData(SPI3);
-			AbsEncoderYCnt.raw32Data=((AbsEncoderYCnt.raw32Data&0x7FFFFFFF)>>3);
+			EncXIntFlag=0;
+			AbsEncoderXCnt.raw32Data|= (uint32_t)SPI_I2S_ReceiveData(SPI3);
+			AbsEncoderXCnt.raw32Data=((AbsEncoderXCnt.raw32Data&0x7FFFFFFF)>>3);
 			//msg.hdr.all=MAKE_MSG_HDRTYPE(0, MSG_SRC_ISR_TIM, MSG_TYPE_ENC);
 			//xQueueSendFromISR(MotionQueue,&msg,&xHigherPriorityTaskWoken);
 			
@@ -301,7 +299,6 @@ int __sPI3_IRQHandler (void * arg)
 	  }
 	return doYield;
 }
-
 
 
 
@@ -360,15 +357,35 @@ int __tIM3_IRQHandler(void * arg)
   if (TIM_GetITStatus(TIM3, TIM_IT_CC1) != RESET)
   {
     TIM_ClearITPendingBit(TIM3, TIM_IT_CC1);
-	if(DriveStatus.Drive1PacketSent==0)
-	{	
-		msg.hdr.all=MAKE_MSG_HDRTYPE(0, MSG_SRC_ISR_TIM, MSG_TYPE_EVENT);
-		msg.data=DRV_STATE_MOTOR_GET;
-		//xQueueSendFromISR(DriveIntQueue,&msg,&xHigherPriorityTaskWoken);
-		if( xHigherPriorityTaskWoken )
-		{
-			// Actual macro used here is port specific.
-			doYield=1;
+	
+	if(TimEventSelect==0x0)
+	{
+		TimEventSelect=0x1;
+		if(DriveStatus.MotionXStatus==MOTION_ACTIVE)
+		{	
+			msg.hdr.all=MAKE_MSG_HDRTYPE(0, MSG_SRC_ISR_TIM, MSG_TYPE_EVENT);
+			msg.data=DRV_STATE_ONT_GET;
+			xQueueSendFromISR(DriveIntQueue,&msg,&xHigherPriorityTaskWoken);
+			if( xHigherPriorityTaskWoken )
+			{
+				// Actual macro used here is port specific.
+				doYield=1;
+			}
+		}
+	}
+	else
+	{
+		TimEventSelect=0x0;
+		if(DriveStatus.MotionYStatus==MOTION_ACTIVE)
+		{	
+			msg.hdr.all=MAKE_MSG_HDRTYPE(1, MSG_SRC_ISR_TIM, MSG_TYPE_EVENT);
+			msg.data=DRV_STATE_ONT_GET;
+			xQueueSendFromISR(DriveIntQueue,&msg,&xHigherPriorityTaskWoken);
+			if( xHigherPriorityTaskWoken )
+			{
+				// Actual macro used here is port specific.
+				doYield=1;
+			}
 		}
 	}
 
