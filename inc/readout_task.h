@@ -53,7 +53,7 @@ struct sReadoutInterface
 
 void readoutRxServerTask(void *para);
 void readoutTxServerTask(void *para);
-int32_t GetReadoutData(void);
+//int32_t GetReadoutData(void);
 
 	
 #ifdef __cplusplus
