@@ -3,7 +3,7 @@
 
 #include "AbsEncoderSSI.h"
 
-#define PI      				3.1415926535897932384626433832795029
+
 #define ABS_ENC_RADIUS			57.30
 //#define ABS_ENC_OFFSET			0x8000 //20 deg
 
