@@ -69,6 +69,7 @@ int handleRxTimeoutFromCtl(struct sFromCtl_packetizer *p)
 }
 
 
+
 PACKETBUF_HDR *handleRxFromCtl(char rxChar, TIMESTAMP rxTS, struct sFromCtl_packetizer *p)
 {
 	volatile PACKETBUF_HDR *retPacket=NULL;
@@ -93,83 +94,32 @@ PACKETBUF_HDR *handleRxFromCtl(char rxChar, TIMESTAMP rxTS, struct sFromCtl_pack
 		 case CTL_RX_STATE_SYNC_1:
 		 	rxFrameSync(p, rxChar, rxTS);
 		 	break;
+
 		 case CTL_RX_STATE_SYNC_2:
-			if (p->prevRxChar!=(PACKETBUF_DATA(p->buf))[0])
-				p->stat.err_frame++;
-			if (rxChar==PREAMBLE_HI)
-	 		{
-	 			// UBX sync 2
-				if (p->prevRxChar==PREAMBLE_LO)
-				{
-					putInBuffer(p, rxChar, rxTS);
-					p->buf->format=RAYON_BINARY_FORMAT;
-					p->rxPayloadLength=p->rxPayloadReceived=0;
-					p->prevRxState=p->rxState;
-					p->rxState=CTL_COMMAND_LSB;
-				}
-				else
-				{
-					// No frame sync
-					rxFrameResync(p);
-					rxFrameSync(p, rxChar, rxTS);
-				}
-	 		}
-			else
+			putInBuffer(p, rxChar, rxTS);
+			p->rxPayloadReceived++;
+			p->buf->format=PI_FORMAT;
+			
+			if(rxChar==0x0A) //< LF>    end of RX  Packet
 			{
-				// No frame sync
+				p->prevRxState=p->rxState;
+				p->stat.rbin++;
+				retPacket=p->buf;
+				p->buf=NULL;
+				rxFrameResync(p);
+
+			}
+			else if (p->rxPayloadReceived>=11)
+			{
+				p->stat.err_frame++;
 				rxFrameResync(p);
 				rxFrameSync(p, rxChar, rxTS);
 			}
-			
-		 	break;
 
-		 case CTL_COMMAND_LSB:
-			putInBuffer(p, rxChar, rxTS);
-			p->rxPayloadLength=p->rxPayloadReceived=0;
-			p->prevRxState=p->rxState;
-			p->rxState=CTL_COMMAND_MSB;
-			break;
 			
-		 case CTL_COMMAND_MSB:
-			putInBuffer(p, rxChar, rxTS);
-			p->rxPayloadLength=p->rxPayloadReceived=0;
-			p->prevRxState=p->rxState;
-			p->rxState=CTL_ATTRIBUTE;
-			break;
-			
-		 case CTL_ATTRIBUTE:
-			putInBuffer(p, rxChar, rxTS);
-			p->rxPayloadLength=((rxChar &0x80) || ~(rxChar &0x10)) ? 4 : 0;
-			p->rxPayloadReceived=0;
-			p->prevRxState=p->rxState;
-			if (p->rxPayloadLength)
-				p->rxState=CTL_RX_RAYON_PAYLOAD;
-			else
-				p->rxState=CTL_RX_RAYON_CRC_LO;
 			break;
 
-		 case CTL_RX_RAYON_PAYLOAD:
-			putInBuffer(p, rxChar, rxTS);
-			p->rxPayloadReceived++;
-			if (p->rxPayloadReceived==p->rxPayloadLength)
-			{
-				p->prevRxState=p->rxState;
-				p->rxState=CTL_RX_RAYON_CRC_LO;
-			}
-			break;
-		case CTL_RX_RAYON_CRC_LO:
-			putInBuffer(p, rxChar, rxTS);
-			p->prevRxState=p->rxState;
-			p->rxState=CTL_RX_RAYON_CRC_HI;
-			break;
-		case CTL_RX_RAYON_CRC_HI:
-			putInBuffer(p, rxChar, rxTS);
-			p->stat.rbin++;
-			retPacket=p->buf;
-			p->buf=NULL;
-			rxFrameResync(p);
-			break;
-		 default:
+		    default:
 			rxFrameResync(p);
 			rxFrameSync(p, rxChar, rxTS);
 			break;
@@ -183,6 +133,8 @@ PACKETBUF_HDR *handleRxFromCtl(char rxChar, TIMESTAMP rxTS, struct sFromCtl_pack
 	return (PACKETBUF_HDR *)retPacket;
 }
 
+
+
 void rxFrameResync(struct sFromCtl_packetizer *p)
 {
 	p->rxIdx=0;
@@ -195,8 +147,8 @@ void rxFrameResync(struct sFromCtl_packetizer *p)
 
 void rxFrameSync(struct sFromCtl_packetizer *p, char rxChar, TIMESTAMP rxTS)
 {
-	if (rxChar==PREAMBLE_LO) 
-	{
+//	if (rxChar==PREAMBLE_LO) 
+//	{
 		// UBX sync 1 
 		//p->buf->startTimestamp=p->buf->endTimestamp=rxTS;
 		p->rxIdx=0;
@@ -204,7 +156,7 @@ void rxFrameSync(struct sFromCtl_packetizer *p, char rxChar, TIMESTAMP rxTS)
 		putInBuffer(p, rxChar, rxTS);
 		p->prevRxState=p->rxState;
 		p->rxState=CTL_RX_STATE_SYNC_2;
-	}
+//	}
 }
 
 void putInBuffer(struct sFromCtl_packetizer *p, char rxChar, TIMESTAMP rxTS)
@@ -232,7 +184,7 @@ void updateCtlTxStat(struct sToCtl_packetizerStat *stat, PACKETBUF_HDR*p)
 	{
 		switch (p->format)
 		{
-		 case RAYON_BINARY_FORMAT:
+		 case PI_FORMAT:
 			stat->rbin++;
 			break;
 		 default:
