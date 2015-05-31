@@ -155,7 +155,7 @@ const struct sDmaResSet ctlUartDma[N_CTL]=
 	}
 };
 
-__IO uint16_t T3_CCR1_Val = 300;/*300,30000*/
+__IO uint16_t T3_CCR1_Val = 60000;/*300,30000*/
 __IO uint16_t T4_CCR1_Val = 30000;/*30000*/
 __IO uint16_t CCR2_Val = 1500;
 __IO uint16_t CCR3_Val = 800;
@@ -217,6 +217,8 @@ char DRV_CMD_POS[3]={'P','O','S'};
 char DRV_CMD_MOVE[3]={'M','O','V'};			
 char DRV_CMD_REF_MODE[3]={'R','O','N'};		
 char DRV_CMD_VELOCITY[3]={'V','E','L'};	
+char DRV_CMD_MOVER[3]={'M','V','R'};	
+char DRV_CMD_ONT[3]={'O','N','T'};
 
 
 static char * DriveCommands[] = {
@@ -226,6 +228,8 @@ DRV_CMD_POS,
 DRV_CMD_MOVE,
 DRV_CMD_REF_MODE,
 DRV_CMD_VELOCITY,
+DRV_CMD_MOVER,
+DRV_CMD_ONT
 };
 
 static int ctlRxCallback(void *arg, int status, void *addr, size_t size);
@@ -601,7 +605,12 @@ void DriveInterpTask(void *para)
 	uint32_t interpScanSkipAcc=0;
 	uint8_t color;
 	uint16_t chksum;
+	float EncXDeg;
+	float EncYDeg;
+	float DiffXpos;
+	float DiffYpos;
 	
+		
 	#ifdef TASK_STACK_CHECK
 	unsigned portBASE_TYPE uxHighWaterMark;
 	
@@ -644,7 +653,7 @@ void DriveInterpTask(void *para)
 	key=__disableInterrupts();
 	/* TIM3 configuration */
 	TIM_Config();
-	//TIM_ITConfig(TIM3, TIM_IT_CC1 | TIM_IT_CC2 , ENABLE); //Enable Driver 1 Status and timeout Timers
+	TIM_ITConfig(TIM3, TIM_IT_CC1 | TIM_IT_CC2 , ENABLE); //Enable Driver 1 Status and timeout Timers
 	__restoreInterrupts(key);
 
 	memset(&drv_1,0,sizeof(drv_1));
@@ -660,9 +669,9 @@ void DriveInterpTask(void *para)
 				
 				if (pktBuf)
 				{
-					chksum=*(uint16_t *)(PACKETBUF_OFFSET_DATA(pktBuf,pktBuf->dlen-2));
-					if(chksum==calcHostFrameCrc((&(PACKETBUF_DATA(pktBuf))[0]),pktBuf->dlen-4))
-					{
+					//chksum=*(uint16_t *)(PACKETBUF_OFFSET_DATA(pktBuf,pktBuf->dlen-2));
+					//if(chksum==calcHostFrameCrc((&(PACKETBUF_DATA(pktBuf))[0]),pktBuf->dlen-4))
+					//{
 						if (drive_in_msg.hdr.bit.source==MSG_SRC_HCMD) //Message is coming from network host
 						{
 							*(PACKETBUF_OFFSET_DATA(pktBuf,4))= (*(PACKETBUF_OFFSET_DATA(pktBuf,4)) & ~FRAME_COLOR) | FWD_FRAME_COLOR; // Force forward color
@@ -717,6 +726,7 @@ void DriveInterpTask(void *para)
 						}
 						else if (drive_in_msg.hdr.bit.source==MSG_SRC_CTL1RX) //Message is coming from controller 1
 						{
+							#ifdef KUKU
 							/*TODO: incoming packet need to be parsed*/
 							color= *PACKETBUF_OFFSET_DATA(pktBuf,4) & FRAME_COLOR;
 						
@@ -736,24 +746,7 @@ void DriveInterpTask(void *para)
 							else if(color==SCAN_FRAME_COLOR)
 							{
 								drv_1.scan_rx++;
-//								DriveStatus.Status1 = *(uint16_t *)(PACKETBUF_OFFSET_DATA(pktBuf,5));
-//								if(DriveStatus.Status1&DRIVE_ERROR_BITS)
-//								{
-//
-//								}
-								
-								//if(tmp==3201)
-								//{
-								//	PrepareFirstCommand(DRV_STATE_SET_TORQUE,&DriverCmd2,SCAN_FRAME_COLOR);
-								//	DriveStatus.Status1 = *(uint16_t *)(PACKETBUF_OFFSET_DATA(pktBuf,5)); //Calculate Current Offset*/
-								//	Current= (*(int32_t *)(PACKETBUF_OFFSET_DATA(pktBuf,5)))>>16;
-								//	DriverCmd2.DrvData.data2= _IQ15toF(Current)*50.0-CurrentOffset;// new Rayon FW   full scale -193.548
-									
-								//	if(pdPASS==SendCmdToDrive(DRIVER_2_ID, &DriverCmd2))
-								//		drv_2.scan_tx++;
-								//	
-								//}
-								//retMemBuf(pktBuf);
+								retMemBuf(pktBuf);
 							}
 							else if (color==CMD_FRAME_COLOR)
 							{
@@ -764,10 +757,69 @@ void DriveInterpTask(void *para)
 							{
 								drv_1.other_rx++;
 								retMemBuf(pktBuf);
-							}		
+							}
+							#else
+								drv_1.cmd_rx++;
+								tmp=*(uint8_t *)(PACKETBUF_OFFSET_DATA(pktBuf,2)); //ONT Command Response*/
+
+								if(tmp==0x31)
+								{
+									if(DriveStatus.TargetPosXCmd<0.0)
+									{
+										key=__disableInterrupts();
+										DriveStatus.TargetPosXCmd=BCKL_X_OFFSET;
+										__restoreInterrupts(key);
+										
+										if(pdPASS==SendCmdToDrive(DRIVER_1_ID, DRV_STATE_MOVE_REL_SET))
+											drv_1.scan_tx++;
+
+										vTaskDelay(10);
+									}
+									else
+									{
+									
+									key=__disableInterrupts();
+									DriveStatus.MotionXStatus=MOTION_NOT_ACTIVE;
+									EncXDeg=CntToDeg(AbsEncoderXData.raw32Data, AbsEncXOffset);
+									__restoreInterrupts(key);
+									if(EncXDeg>180.0)
+										EncXDeg-=360.0;
+										
+
+					
+									EncXDeg=EncXDeg*PI/0.00018;	//Y position in uRadians
+									DiffXpos=DriveStatus.HostPosXCmd-EncXDeg;
+
+									
+										if(abs(DiffXpos)>1.0)
+										{
+											DiffXpos=DiffXpos*XRADIUS;
+
+									
+											if(DiffXpos<0.0)
+												DiffXpos-=BCKL_X_OFFSET;
+
+												
+											key=__disableInterrupts();
+											DriveStatus.TargetPosXCmd=DiffXpos;
+											__restoreInterrupts(key);	
+
+											if(pdPASS==SendCmdToDrive(DRIVER_1_ID, DRV_STATE_MOVE_REL_SET))
+												drv_1.scan_tx++;
+							
+											vTaskDelay(10);
+											DriveStatus.MotionXStatus=MOTION_ACTIVE;
+										}
+										
+									}	
+
+								}
+								retMemBuf(pktBuf);
+							#endif
 						}
 						else if (drive_in_msg.hdr.bit.source==MSG_SRC_CTL2RX) //Message is coming from controller 2
 						{
+							#ifdef KUKU
 							color= *PACKETBUF_OFFSET_DATA(pktBuf,4) & FRAME_COLOR;
 							tmp=*(uint16_t *)(PACKETBUF_OFFSET_DATA(pktBuf,2)); 
 							if(tmp==284)
@@ -798,26 +850,101 @@ void DriveInterpTask(void *para)
 								drv_2.other_rx++;
 								retMemBuf(pktBuf);
 							}
+							#else
+							drv_2.cmd_rx++;
+							tmp=*(uint8_t *)(PACKETBUF_OFFSET_DATA(pktBuf,2)); //ONT Command Response*/
+							
+							if(tmp==0x31)
+							{
+								if(DriveStatus.TargetPosYCmd>0.0)
+								{
+									key=__disableInterrupts();
+									DriveStatus.TargetPosYCmd=BCKL_Y_OFFSET;
+									__restoreInterrupts(key);
+									
+									if(pdPASS==SendCmdToDrive(DRIVER_2_ID, DRV_STATE_MOVE_REL_SET))
+										drv_2.scan_tx++;
+							
+									vTaskDelay(10);
+								}
+								else
+								{
+									key=__disableInterrupts();
+									DriveStatus.MotionYStatus=MOTION_NOT_ACTIVE;
+									EncYDeg=CntToDeg(AbsEncoderYData.raw32Data, AbsEncYOffset);
+									__restoreInterrupts(key);
+									if(EncYDeg>180.0)
+										EncYDeg-=360.0;
+										
+
+					
+									EncYDeg=EncYDeg*PI/0.00018;	//Y position in uRadians
+									DiffYpos=DriveStatus.HostPosYCmd-EncYDeg;
+
+									
+										if(abs(DiffYpos)>1.0)
+										{
+											DiffYpos=DiffYpos*YRADIUS;
+
+									
+											if(DiffYpos>0.0)
+												DiffYpos-=BCKL_Y_OFFSET;
+
+												
+											key=__disableInterrupts();
+											DriveStatus.TargetPosYCmd=DiffYpos;
+											__restoreInterrupts(key);	
+
+											if(pdPASS==SendCmdToDrive(DRIVER_2_ID, DRV_STATE_MOVE_REL_SET))
+												drv_2.scan_tx++;
+							
+											vTaskDelay(10);
+											DriveStatus.MotionYStatus=MOTION_ACTIVE;
+										}
+																	
+								}
+							
+							}
+
+							retMemBuf(pktBuf);
+
+							#endif
 						}
-					}
+					//}
 				}
 			}
 			else if(drive_in_msg.hdr.bit.type==MSG_TYPE_EVENT)
 			{
 				if (drive_in_msg.hdr.bit.source==MSG_SRC_ISR_TIM) //Message is coming from TMR ISR
 				{
-					if (interpScanSkipCount==0)
-					{
-						//PrepareFirstCommand(drive_in_msg.data, &DriverCmd1, SCAN_FRAME_COLOR);
-						
-						if(pdPASS==SendCmdToDrive(DRIVER_1_ID, drive_in_msg.data))
-							drv_1.scan_tx++;
+					if (drive_in_msg.hdr.bit.len==0x0) //len parameter is used to select between Drive 1 and Drive 2
+					{					
+						if (interpScanSkipCount==0)
+						{
+							//PrepareFirstCommand(drive_in_msg.data, &DriverCmd1, SCAN_FRAME_COLOR);
+							
+							if(pdPASS==SendCmdToDrive(DRIVER_1_ID, drive_in_msg.data))
+								drv_1.scan_tx++;
+						}
+						else
+						{
+							interpScanSkipCount--;
+							drv_1.scan_skip++;
+						}
 					}
-					else
-					{
-						interpScanSkipCount--;
-						drv_1.scan_skip++;
-					}
+					else	 //len parameter is used to select between Drive 1 and Drive 2
+					{					
+						if (interpScanSkipCount==0)
+						{
+							if(pdPASS==SendCmdToDrive(DRIVER_2_ID, drive_in_msg.data))
+								drv_2.scan_tx++;
+						}
+						else
+						{
+							interpScanSkipCount--;
+							drv_2.scan_skip++;
+						}
+					}					
 				}
 			}
 			else if(drive_in_msg.hdr.bit.type==MSG_TYPE_CMD)
@@ -1010,7 +1137,12 @@ unsigned char  BuildDrivePckt(char *buf, uint16_t data, uint16_t chan)
 				*temp=SPACE;
 				temp++;
 				
-				param=ftoa(0.0,&status);
+				if(chan==DRIVER_1_ID)
+					param=ftoa(DriveStatus.TargetPosXCmd*XRADIUS,&status);
+				else if(chan==DRIVER_2_ID)
+					param=ftoa(DriveStatus.TargetPosYCmd*YRADIUS,&status);
+				else
+					return 0;
 				
 				if(status!=FTOA_OK)
 					return 0;
@@ -1077,6 +1209,43 @@ unsigned char  BuildDrivePckt(char *buf, uint16_t data, uint16_t chan)
 				
 				
 			break;
+
+			case DRV_STATE_MOVE_REL_SET:
+				
+				memcpy(temp,DriveCommands[MOVE_REL_COMMAND], 3);
+				temp+=3;
+				*temp=SPACE;
+				temp++;
+				*temp=AXIS_1;
+				temp++;
+				*temp=SPACE;
+				temp++;
+				
+				if(chan==DRIVER_1_ID)
+					param=ftoa(-1.0*DriveStatus.TargetPosXCmd,&status);
+				else if(chan==DRIVER_2_ID)
+					param=ftoa(-1.0*DriveStatus.TargetPosYCmd,&status);
+				else
+					return 0;
+				
+				if(status!=FTOA_OK)
+					return 0;
+				
+				while (*param!=0)
+				{
+					*temp=*param;
+					temp++;
+					param++;
+				}	
+				
+				*temp=LF;
+				temp++;
+				len=temp-buf;			
+							
+				
+				
+			break;
+
 			
 			case DRV_STATE_MOVE_GET:
 				
@@ -1153,8 +1322,14 @@ unsigned char  BuildDrivePckt(char *buf, uint16_t data, uint16_t chan)
 				temp++;
 				*temp=SPACE;
 				temp++;
+
+				if(chan==DRIVER_1_ID)
+					param=ftoa(DriveStatus.VelocityXCmd,&status);
+				else if(chan==DRIVER_2_ID)
+					param=ftoa(DriveStatus.VelocityYCmd,&status);
+				else
+					return 0;
 				
-				param=ftoa(DriveStatus.VelocityCmd, &status);
 				
 				if(status!=FTOA_OK)
 					return 0;
@@ -1186,7 +1361,19 @@ unsigned char  BuildDrivePckt(char *buf, uint16_t data, uint16_t chan)
 							
 		
 			break;
-		
+
+			case DRV_STATE_ONT_GET:
+				
+				memcpy(temp,DriveCommands[ON_TARGET_COMMAND], 3);
+				temp+=3;
+				*temp=GET;
+				temp++;
+				*temp=LF;
+				temp++;
+				len=temp-buf;				
+				
+				
+			break;
 		
 			default:
 				
