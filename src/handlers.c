@@ -62,6 +62,8 @@ uint8_t TimEventSelect=0;
 
 extern struct sEmergencyStatus	EmergStatus;
 uint32_t enc;
+extern uint8_t Drv1FwdFlag;
+extern uint8_t Drv2FwdFlag;
 
 int __eXTI15_10_IRQHandler(void * arg)
 {
@@ -396,7 +398,9 @@ int __tIM3_IRQHandler(void * arg)
   {
     TIM_ClearITPendingBit(TIM3, TIM_IT_CC2);
 	TIM_ITConfig(TIM3, TIM_IT_CC2, DISABLE);
-	xSemaphoreGiveFromISR(Timer_3_Sem,&xHigherPriorityTaskWoken);
+	//xSemaphoreGiveFromISR(Timer_3_Sem,&xHigherPriorityTaskWoken);
+	Drv1FwdFlag=0;
+	Drv2FwdFlag=0;
 	if( xHigherPriorityTaskWoken )
 	{
 		// Actual macro used here is port specific.

@@ -232,6 +232,10 @@ DRV_CMD_MOVER,
 DRV_CMD_ONT
 };
 
+uint8_t Drv1FwdFlag=0;
+uint8_t Drv2FwdFlag=0;
+
+
 static int ctlRxCallback(void *arg, int status, void *addr, size_t size);
 void handleCtlIncomingData(char *Buffer, size_t len, struct sFromCtl_packetizer *CtlRxPack, uint16_t fwd, uint16_t chan);
 void initCtlDevParams(void);
@@ -677,11 +681,13 @@ void DriveInterpTask(void *para)
 							*(PACKETBUF_OFFSET_DATA(pktBuf,4))= (*(PACKETBUF_OFFSET_DATA(pktBuf,4)) & ~FRAME_COLOR) | FWD_FRAME_COLOR; // Force forward color
 							if((drive_in_msg.data)==DRIVER_1_ID)
 							{
-							
+								
 								if (pdFAIL==sendPacketToDrive(pktBuf, portMAX_DELAY, DRIVER_1_ID))
 									retMemBuf(pktBuf);
 								else
 								{
+									DriveTimeout(TIM3,10000);
+									Drv1FwdFlag=1;
 									interpScanSkipCount++;
 									drv_1.fwd_tx++;
 								}
@@ -692,6 +698,8 @@ void DriveInterpTask(void *para)
 									retMemBuf(pktBuf);
 								else
 								{
+									DriveTimeout(TIM3,10000);
+									Drv2FwdFlag=1;
 									interpScanSkipCount++;
 									drv_2.fwd_tx++;
 								}
@@ -707,6 +715,7 @@ void DriveInterpTask(void *para)
 									retMemBuf(pktBuf);
 								else
 								{
+									Drv1FwdFlag=1;
 									interpScanSkipAcc++;
 									drv_1.fwd_tx++;
 								}
@@ -717,10 +726,12 @@ void DriveInterpTask(void *para)
 										retMemBuf(TmpBuf);
 									else
 									{
+										Drv2FwdFlag=1;
 										interpScanSkipAcc++;
 										drv_2.fwd_tx++;
 									}
 								}
+								DriveTimeout(TIM3,10000);
 								interpScanSkipCount+=(interpScanSkipAcc) ? 1 : 0;
 							}
 						}
@@ -759,6 +770,19 @@ void DriveInterpTask(void *para)
 								retMemBuf(pktBuf);
 							}
 							#else
+							if(Drv1FwdFlag)
+							{
+								Drv1FwdFlag=0;
+								drv_1.fwd_rx++;
+								drive_in_msg.hdr.bit.source=MSG_SRC_INTERP;
+								drive_in_msg.hdr.bit.type=MSG_TYPE_PACKET;
+								drive_in_msg.data=DRIVER_1_ID;
+								if (pdFAIL==xQueueSend(hCmdMbx,&drive_in_msg,portMAX_DELAY))
+									retMemBuf(pktBuf);
+
+							}
+							else
+							{
 								drv_1.cmd_rx++;
 								tmp=*(uint8_t *)(PACKETBUF_OFFSET_DATA(pktBuf,2)); //ONT Command Response*/
 
@@ -815,6 +839,7 @@ void DriveInterpTask(void *para)
 
 								}
 								retMemBuf(pktBuf);
+							}	
 							#endif
 						}
 						else if (drive_in_msg.hdr.bit.source==MSG_SRC_CTL2RX) //Message is coming from controller 2
@@ -851,63 +876,75 @@ void DriveInterpTask(void *para)
 								retMemBuf(pktBuf);
 							}
 							#else
-							drv_2.cmd_rx++;
-							tmp=*(uint8_t *)(PACKETBUF_OFFSET_DATA(pktBuf,2)); //ONT Command Response*/
-							
-							if(tmp==0x31)
+							if(Drv2FwdFlag)
 							{
-								if(DriveStatus.TargetPosYCmd>0.0)
-								{
-									key=__disableInterrupts();
-									DriveStatus.TargetPosYCmd=BCKL_Y_OFFSET;
-									__restoreInterrupts(key);
-									
-									if(pdPASS==SendCmdToDrive(DRIVER_2_ID, DRV_STATE_MOVE_REL_SET))
-										drv_2.scan_tx++;
-							
-									vTaskDelay(10);
-								}
-								else
-								{
-									key=__disableInterrupts();
-									DriveStatus.MotionYStatus=MOTION_NOT_ACTIVE;
-									EncYDeg=CntToDeg(AbsEncoderYData.raw32Data, AbsEncYOffset);
-									__restoreInterrupts(key);
-									if(EncYDeg>180.0)
-										EncYDeg-=360.0;
-										
-
-					
-									EncYDeg=EncYDeg*PI/0.00018;	//Y position in uRadians
-									DiffYpos=DriveStatus.HostPosYCmd-EncYDeg;
-
-									
-										if(abs(DiffYpos)>1.0)
-										{
-											DiffYpos=DiffYpos*YRADIUS;
-
-									
-											if(DiffYpos>0.0)
-												DiffYpos-=BCKL_Y_OFFSET;
-
-												
-											key=__disableInterrupts();
-											DriveStatus.TargetPosYCmd=DiffYpos;
-											__restoreInterrupts(key);	
-
-											if(pdPASS==SendCmdToDrive(DRIVER_2_ID, DRV_STATE_MOVE_REL_SET))
-												drv_2.scan_tx++;
-							
-											vTaskDelay(10);
-											DriveStatus.MotionYStatus=MOTION_ACTIVE;
-										}
-																	
-								}
-							
+								Drv2FwdFlag=0;
+								drv_2.fwd_rx++;
+								drive_in_msg.hdr.bit.source=MSG_SRC_INTERP;
+								drive_in_msg.hdr.bit.type=MSG_TYPE_PACKET;
+								drive_in_msg.data=DRIVER_2_ID;
+								if (pdFAIL==xQueueSend(hCmdMbx,&drive_in_msg,portMAX_DELAY))
+									retMemBuf(pktBuf);
 							}
+							else
+							{
+								drv_2.cmd_rx++;
+								tmp=*(uint8_t *)(PACKETBUF_OFFSET_DATA(pktBuf,2)); //ONT Command Response*/
+							
+								if(tmp==0x31)
+								{
+									if(DriveStatus.TargetPosYCmd>0.0)
+									{
+										key=__disableInterrupts();
+										DriveStatus.TargetPosYCmd=BCKL_Y_OFFSET;
+										__restoreInterrupts(key);
+										
+										if(pdPASS==SendCmdToDrive(DRIVER_2_ID, DRV_STATE_MOVE_REL_SET))
+											drv_2.scan_tx++;
+								
+										vTaskDelay(10);
+									}
+									else
+									{
+										key=__disableInterrupts();
+										DriveStatus.MotionYStatus=MOTION_NOT_ACTIVE;
+										EncYDeg=CntToDeg(AbsEncoderYData.raw32Data, AbsEncYOffset);
+										__restoreInterrupts(key);
+										if(EncYDeg>180.0)
+											EncYDeg-=360.0;
+											
 
-							retMemBuf(pktBuf);
+						
+										EncYDeg=EncYDeg*PI/0.00018;	//Y position in uRadians
+										DiffYpos=DriveStatus.HostPosYCmd-EncYDeg;
 
+										
+											if(abs(DiffYpos)>1.0)
+											{
+												DiffYpos=DiffYpos*YRADIUS;
+
+										
+												if(DiffYpos>0.0)
+													DiffYpos-=BCKL_Y_OFFSET;
+
+													
+												key=__disableInterrupts();
+												DriveStatus.TargetPosYCmd=DiffYpos;
+												__restoreInterrupts(key);	
+
+												if(pdPASS==SendCmdToDrive(DRIVER_2_ID, DRV_STATE_MOVE_REL_SET))
+													drv_2.scan_tx++;
+								
+												vTaskDelay(10);
+												DriveStatus.MotionYStatus=MOTION_ACTIVE;
+											}
+																		
+									}
+								
+								}
+
+								retMemBuf(pktBuf);
+							}
 							#endif
 						}
 					//}
@@ -955,13 +992,13 @@ void DriveInterpTask(void *para)
 				{		
 					//PrepareFirstCommand(drive_in_msg.data, &DriverCmd1, CMD_FRAME_COLOR);
 					DriveStatus.Drive1PacketSent=1;
-					xSemaphoreTake(Timer_3_Sem,1);
+					//xSemaphoreTake(Timer_3_Sem,1);
 					if(pdPASS==SendCmdToDrive(DRIVER_1_ID, drive_in_msg.data))
 					{
 						interpScanSkipCount++;
 						drv_1.cmd_tx++;
 						
-						xSemaphoreTake(Timer_3_Sem,1);
+						//xSemaphoreTake(Timer_3_Sem,1);
 					}
 					DriveStatus.Drive1PacketSent=0;
 				}
@@ -1224,7 +1261,7 @@ unsigned char  BuildDrivePckt(char *buf, uint16_t data, uint16_t chan)
 				if(chan==DRIVER_1_ID)
 					param=ftoa(-1.0*DriveStatus.TargetPosXCmd,&status);
 				else if(chan==DRIVER_2_ID)
-					param=ftoa(-1.0*DriveStatus.TargetPosYCmd,&status);
+					param=ftoa(-1.0*DriveStatus.TargetPosYCmd,&status);// -1.0*
 				else
 					return 0;
 				

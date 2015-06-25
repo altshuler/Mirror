@@ -127,11 +127,11 @@
 {\
 		0,			/* SW Version major number  */\
 		0,			/* SW Version middle number */\
-		5,			/* SW Version minor number   */\
+		6,			/* SW Version minor number   */\
 		15,			/* SW Date year  */\
-		5,			/* SW Date month */\
-		27,			/* SW Date day */\
-		"MIRROR SW ver:   0.0.5 FW ver: 0.2",			/* SW Version description -34 characters */\
+		6,			/* SW Date month */\
+		11,			/* SW Date day */\
+		"MIRROR SW ver:   0.0.6 FW ver: 0.2",			/* SW Version description -34 characters */\
 		0,			/* FW Version major number  */\
 		2,			/* FW Version minor number */\
 		14,			/* FW Date year */\
