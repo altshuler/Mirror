@@ -78,17 +78,6 @@ void CBITTask(void * pvParameters)
 
 	PedestalStatus(NULL);
 
-	#ifdef KUKU
-	if(ERROR==InitAbsolutePosition())
-	{	
-		// Failed to Initialize Absolute positions
-		while(1)
-		{
-			vTaskSuspend(NULL);
-			vTaskDelay(10);
-		}
-	}
-	#endif
 	
 	while(1)
 	{
@@ -171,7 +160,7 @@ void Emergency_Int_EXTIConfig(void)
   installInterruptHandler(EXTI9_5_IRQn,__eXTI9_5_IRQHandler,NULL);
   
   /* Enable and set the EXTI interrupt to the highest priority */
-  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);  
+  //NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);  
   NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
   NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = configLIBRARY_LOWEST_INTERRUPT_PRIORITY;
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
@@ -317,40 +306,60 @@ void CheckDiscrets(void)
 {
 	union uDiscrete DiscreteData;
 	uint32_t key;
-	MSG_HDR msg;	
-	MSG_HDR msg1;	
+	MSG_HDR msg;		
 
 	DiscreteData.bit.discrete_1_4= (uint8_t)((GPIO_ReadInputData(DISCRETE_1_GPIO_PORT)>>9)&0xf);
-	DiscreteData.bit.discrete_5_6=(uint8_t)((GPIO_ReadInputData(DISCRETE_5_GPIO_PORT)>>5)&0x3);
+	//DiscreteData.bit.discrete_5_6=(uint8_t)((GPIO_ReadInputData(DISCRETE_5_GPIO_PORT)>>5)&0x3);
 	DiscreteData.bit.spare=0x0;
 	
-	if(SysParams.LimitSwState!=DiscreteData.all)
+	if(SysParams.LimitSwState!=DiscreteData.bit.discrete_1_4)
 	{
 		vTaskDelay(5);
 		DiscreteData.bit.discrete_1_4= (uint8_t)((GPIO_ReadInputData(DISCRETE_1_GPIO_PORT)>>9)&0xf);
-		DiscreteData.bit.discrete_5_6=(uint8_t)((GPIO_ReadInputData(DISCRETE_5_GPIO_PORT)>>5)&0x3);
+		//DiscreteData.bit.discrete_5_6=(uint8_t)((GPIO_ReadInputData(DISCRETE_5_GPIO_PORT)>>5)&0x3);
 		
 		
-		if(SysParams.LimitSwState!=DiscreteData.all)
+		if(SysParams.LimitSwState!=DiscreteData.bit.discrete_1_4)
 		{
 			key=__disableInterrupts();
-			SysParams.LimitSwState=DiscreteData.all;
+			SysParams.LimitSwState=DiscreteData.bit.discrete_1_4;
 			__restoreInterrupts(key);
 		}
 	
 		
-		if(DiscreteData.all!=0x3f)
-			msg.data=msg1.data=DRV_STATE_MOTOR_OFF;
-		else
-			msg.data=msg1.data=DRV_STATE_MOTOR_ON;
-		
-		msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
-		msg.buf=NULL;
-		//xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
-		
-		msg1.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);
-		msg1.buf=NULL;
-		//xQueueSend(DriveIntQueue,&msg1,portMAX_DELAY);
+		if(DiscreteData.bit.discrete_1_4!=0x0)
+		{
+			msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
+			msg.data=DRV_STATE_MOTOR_OFF;
+			msg.buf=NULL;
+			xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+			
+			vTaskDelay(5);
+			
+			msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);	
+			xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+
+			key=__disableInterrupts();
+			DriveStatus.VelocityXCmd= 0.0;
+			DriveStatus.VelocityYCmd= 0.0;
+			DriveStatus.MotionXStatus=MOTION_NOT_ACTIVE;
+			DriveStatus.MotionYStatus=MOTION_NOT_ACTIVE;
+			SysParams.ActionXComplete = ACTION_COMPLETE;			
+			SysParams.ActionYComplete = ACTION_COMPLETE;
+			SysParams.State = SYS_STATE_STDBY;
+			__restoreInterrupts(key);
+
+
+			msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
+			msg.buf=NULL;
+			msg.data=DRV_STATE_VELOCITY_SET;
+			xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+
+			msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);
+			xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+
+	
+		}
 	}		
 }
 
