@@ -74,6 +74,10 @@ uint8_t DirFlag=0;
 float Enc=0;
 float Emaverage=0;
 extern portTickType RS_422_Rate;
+float PrevXVel=0;
+float PrevYVel=0;
+float PrevPos1=0;
+float PrevPos2=0;
 
 
 
@@ -188,9 +192,9 @@ unsigned char  SetStateAck(char *cmd,char *buf)
 
 	if(AbsEncoderXData.ssiData.Error==0)
 	{
-		key=__disableInterrupts();
-		SysParams.AbsEncStatus=STATUS_FAIL;
-		__restoreInterrupts(key);
+		//key=__disableInterrupts();
+		//SysParams.AbsEncXStatus=STATUS_FAIL;
+		//__restoreInterrupts(key);
 	}
 	else
 	{
@@ -208,9 +212,9 @@ unsigned char  SetStateAck(char *cmd,char *buf)
 
 	if(AbsEncoderYData.ssiData.Error==0)
 	{
-		key=__disableInterrupts();
-		SysParams.AbsEncStatus=STATUS_FAIL;
-		__restoreInterrupts(key);
+		//key=__disableInterrupts();
+		//SysParams.AbsEncYStatus=STATUS_FAIL;
+		//__restoreInterrupts(key);
 	}
 	else
 	{
@@ -265,11 +269,11 @@ unsigned char  SetStateAck(char *cmd,char *buf)
 				else if(SysParams.State==SYS_STATE_OPERATE)
 				{
 					StateTranRes=STATE_RES_OK;
-					Brake_1_Control(DISABLE);
-					Brake_2_Control(DISABLE);
 					
 					key=__disableInterrupts();
 					SysParams.State=ReqState;
+					DriveStatus.MotionXStatus=MOTION_NOT_ACTIVE;
+					DriveStatus.MotionYStatus=MOTION_NOT_ACTIVE;	
 					__restoreInterrupts(key);
 					
 					msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
@@ -303,68 +307,189 @@ unsigned char  SetStateAck(char *cmd,char *buf)
 						
 						if(SysParams.SubState==SYS_STPR_1_SELECT)
 						{
-							msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
-							msg.buf=NULL;
-							msg.data=DRV_STATE_VELOCITY_SET;
-							xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+							if(((SysParams.LimitSwState&0x1)&&(Pos1>AbsEncoderXDeg))||((SysParams.LimitSwState&0x2)&&(Pos1<AbsEncoderXDeg))||SysParams.LimitSwState==0x0)
+							{						
+								msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
+								msg.buf=NULL;
+								msg.data=DRV_STATE_VELOCITY_SET;
+								xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
 
-							vTaskDelay(10);
-							
-							msg.data=DRV_STATE_MOVE_REL_SET;
-							xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+								if(XVel>MIN_VELOCITY)
+								{
+									
+									msg.data=DRV_STATE_MOVE_REL_SET;
+									xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
 
-							vTaskDelay(10);
-							
-							key=__disableInterrupts();
-							DriveStatus.MotionXStatus=MOTION_ACTIVE;
-							__restoreInterrupts(key);
 
+									
+									key=__disableInterrupts();
+									SysParams.ActionXComplete = ACTION_NOT_COMPLETE;
+									DriveStatus.MotionXStatus=MOTION_ACTIVE;
+									__restoreInterrupts(key);
+								}
+							}
 						}	
 						else if(SysParams.SubState==SYS_STPR_2_SELECT)
 						{
-							msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);
-							msg.buf=NULL;
-							msg.data=DRV_STATE_VELOCITY_SET;
-							xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
-						
-							vTaskDelay(10);
-							
-							msg.data=DRV_STATE_MOVE_REL_SET;
-							xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+							if(((SysParams.LimitSwState&0x4)&&(Pos2<AbsEncoderYDeg))||((SysParams.LimitSwState&0x8)&&(Pos2>AbsEncoderYDeg))||SysParams.LimitSwState==0x0)
+							{
+								msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);
+								msg.buf=NULL;
+								msg.data=DRV_STATE_VELOCITY_SET;
+								xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
 
-							vTaskDelay(10);
-							
-							key=__disableInterrupts();
-							DriveStatus.MotionYStatus=MOTION_ACTIVE;
-							__restoreInterrupts(key);
+								
+								if(YVel>MIN_VELOCITY)
+								{
+									
+									msg.data=DRV_STATE_MOVE_REL_SET;
+									xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+
+									
+									key=__disableInterrupts();
+									SysParams.ActionYComplete = ACTION_NOT_COMPLETE;
+									DriveStatus.MotionYStatus=MOTION_ACTIVE;
+									__restoreInterrupts(key);
+								}
+							}	
+						}
+						else if(SysParams.SubState==SYS_STPR_JOYSTICK)
+						{
+							if(((SysParams.LimitSwState&0x1)&&(Pos1>AbsEncoderXDeg))||((SysParams.LimitSwState&0x2)&&(Pos1<AbsEncoderXDeg))||SysParams.LimitSwState==0x0)
+							{						
+								msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
+								msg.buf=NULL;
+
+								if(XVel!=PrevXVel)
+								{
+									if(DriveStatus.TargetPosXCmd>0.0)
+										DriveStatus.TargetPosXCmd=10.0;
+									else if(DriveStatus.TargetPosXCmd<0.0)
+										DriveStatus.TargetPosXCmd=-10.0;
+									
+									msg.data=DRV_STATE_MOVE_SET;
+									xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+								}
+	
+
+								if(XVel!=PrevXVel)
+								{
+									if(XVel==0.0)
+										msg.data=DRV_STATE_HLT_SET;
+									else
+										msg.data=DRV_STATE_VELOCITY_SET;
+									
+										xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+									
+									if(XVel>0)
+									{
+										key=__disableInterrupts();
+										SysParams.ActionXComplete = ACTION_NOT_COMPLETE;
+										__restoreInterrupts(key);									
+									}
+									else
+									{
+										key=__disableInterrupts();
+										SysParams.ActionXComplete = ACTION_COMPLETE;
+										__restoreInterrupts(key);									
+									}																
+								}
+								
+								
+								PrevXVel=XVel;
+								PrevPos1=Pos1;
+
+							}
+
+							if(((SysParams.LimitSwState&0x4)&&(Pos2<AbsEncoderYDeg))||((SysParams.LimitSwState&0x8)&&(Pos2>AbsEncoderYDeg))||SysParams.LimitSwState==0x0)
+							{
+								msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);
+								msg.buf=NULL;
+								
+								if(YVel!=PrevYVel)
+								{
+									if(DriveStatus.TargetPosYCmd>0.0)
+										DriveStatus.TargetPosYCmd=10.0;
+									else if(DriveStatus.TargetPosYCmd<0.0)
+										DriveStatus.TargetPosYCmd=-10.0;
+									
+									msg.data=DRV_STATE_MOVE_SET;
+									xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+								}
+								
+
+								if(YVel!=PrevYVel)
+								{
+									if(YVel==0.0)
+										msg.data=DRV_STATE_HLT_SET;
+									else
+										msg.data=DRV_STATE_VELOCITY_SET;
+									
+									xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+									
+									if(YVel>0)
+									{
+										key=__disableInterrupts();
+										SysParams.ActionYComplete = ACTION_NOT_COMPLETE;
+										__restoreInterrupts(key);									
+									}
+									else
+									{
+										key=__disableInterrupts();
+										SysParams.ActionYComplete = ACTION_COMPLETE;
+										__restoreInterrupts(key);									
+									}											
+								}
+								
+
+								PrevYVel=YVel;
+								PrevPos2=Pos2;
+
+							}								
 
 						}
 						else 
 						{
-							msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
-							msg.buf=NULL;
-							msg.data=DRV_STATE_VELOCITY_SET;
-							xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
-						
-							msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);
-							xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+							if(SysParams.LimitSwState==0x0)
+							{	
+								msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
+								msg.buf=NULL;
+								msg.data=DRV_STATE_VELOCITY_SET;
+								xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
 
-							vTaskDelay(10);
+								if(DriveStatus.VelocityXCmd>MIN_VELOCITY)
+								{
+									
+									
+									msg.data=DRV_STATE_MOVE_REL_SET;
+									xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
 
-							msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
-							msg.data=DRV_STATE_MOVE_REL_SET;
-							xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+									
+									key=__disableInterrupts();
+									SysParams.ActionXComplete = ACTION_NOT_COMPLETE;
+									DriveStatus.MotionXStatus=MOTION_ACTIVE;
+									__restoreInterrupts(key);
+								}	
 
-							msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);
-							xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
-
-							vTaskDelay(10);
+								msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);
+								msg.buf=NULL;
+								msg.data=DRV_STATE_VELOCITY_SET;
+								xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
 							
-							key=__disableInterrupts();
-							DriveStatus.MotionXStatus=MOTION_ACTIVE;
-							DriveStatus.MotionYStatus=MOTION_ACTIVE;
-							__restoreInterrupts(key);
 							
+								if(DriveStatus.VelocityYCmd>MIN_VELOCITY)
+								{
+									
+									msg.data=DRV_STATE_MOVE_REL_SET;
+									xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+								
+									
+									key=__disableInterrupts();
+									SysParams.ActionYComplete = ACTION_NOT_COMPLETE;
+									DriveStatus.MotionYStatus=MOTION_ACTIVE;
+									__restoreInterrupts(key);
+								}
+							}
 						}						
 
 						
@@ -436,6 +561,8 @@ unsigned char  SetStateAck(char *cmd,char *buf)
 						
 					key=__disableInterrupts();
 					SysParams.State=ReqState;
+					DriveStatus.MotionXStatus=MOTION_NOT_ACTIVE;
+					DriveStatus.MotionXStatus=MOTION_NOT_ACTIVE;	
 					__restoreInterrupts(key);
 					vTaskDelay(120);
 					
@@ -455,6 +582,8 @@ unsigned char  SetStateAck(char *cmd,char *buf)
 					StateTranRes=STATE_RES_OK;
 					key=__disableInterrupts();
 					SysParams.State=ReqState;
+					DriveStatus.MotionXStatus=MOTION_NOT_ACTIVE;
+					DriveStatus.MotionXStatus=MOTION_NOT_ACTIVE;					
 					__restoreInterrupts(key);
 					
 					msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
@@ -468,9 +597,7 @@ unsigned char  SetStateAck(char *cmd,char *buf)
 					xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
 					
 					vTaskDelay(200);
-					Brake_1_Control(DISABLE);
-					Brake_2_Control(DISABLE);
-					
+	
 					sendPacketToHost(NULL, MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD,MSG_TYPE_CMD), portMAX_DELAY);
 				}
 				else
@@ -553,9 +680,10 @@ unsigned char  PedestalStatus(char *buf)
 	#else
 		if(AbsEncoderXData.ssiData.Error==0)
 		{
-			key=__disableInterrupts();
-			SysParams.AbsEncStatus=STATUS_FAIL;
-			__restoreInterrupts(key);
+			//key=__disableInterrupts();
+			//SysParams.AbsEncStatus=STATUS_FAIL;
+			//__restoreInterrupts(key);
+			AbsEncoderXDeg=0.0;
 		}
 		else
 		{
@@ -568,9 +696,10 @@ unsigned char  PedestalStatus(char *buf)
 
 		if(AbsEncoderYData.ssiData.Error==0)
 		{
-			key=__disableInterrupts();
-			SysParams.AbsEncStatus=STATUS_FAIL;
-			__restoreInterrupts(key);
+			//key=__disableInterrupts();
+			//SysParams.AbsEncStatus=STATUS_FAIL;
+			//__restoreInterrupts(key);
+			AbsEncoderYDeg=0.0;
 		}
 		else
 		{
@@ -1230,16 +1359,18 @@ uint32_t key;
 		Status=STATUS_FAIL;
 	//if(SysParams.Current==STATUS_FAIL)
 	//	Status=STATUS_FAIL;
-	if(SysParams.AbsEncStatus==STATUS_FAIL)
+	if(SysParams.AbsEncXStatus==STATUS_FAIL)
 		Status=STATUS_FAIL;
+	if(SysParams.AbsEncYStatus==STATUS_FAIL)
+		Status=STATUS_FAIL;	
 	if(SysParams.FlashTest==STATUS_FAIL)
 		Status=STATUS_FAIL;
 	if(SysParams.RamTest==STATUS_FAIL)
 		Status=STATUS_FAIL;
 	if(SysParams.SafetyState!=STATUS_OK)
 		Status=STATUS_FAIL;
-	if(SysParams.LimitSwState!=0x3f)
-		Status=STATUS_FAIL;
+	//if(SysParams.LimitSwState!=0x3f)
+	//	Status=STATUS_FAIL;
 	
 return Status;
 
@@ -1414,9 +1545,9 @@ void GoHomePosition(float xpos, float ypos)
 		{
 			if(AbsEncoderXData.ssiData.Error==0)
 			{
-				key=__disableInterrupts();
-				SysParams.AbsEncStatus=STATUS_FAIL;
-				__restoreInterrupts(key);
+				//key=__disableInterrupts();
+				//SysParams.AbsEncStatus=STATUS_FAIL;
+				//__restoreInterrupts(key);
 			}
 			else
 			{
@@ -1434,9 +1565,9 @@ void GoHomePosition(float xpos, float ypos)
 			
 			if(AbsEncoderYData.ssiData.Error==0)
 			{
-				key=__disableInterrupts();
-				SysParams.AbsEncStatus=STATUS_FAIL;
-				__restoreInterrupts(key);
+				//key=__disableInterrupts();
+				//SysParams.AbsEncStatus=STATUS_FAIL;
+				//__restoreInterrupts(key);
 			}
 			else
 			{
@@ -1466,23 +1597,33 @@ void GoHomePosition(float xpos, float ypos)
 			DriveStatus.HostPosYCmd=ypos;	
 			DriveStatus.TargetPosXCmd=TargXPos;
 			DriveStatus.TargetPosYCmd=TargYPos;
+			DriveStatus.VelocityXCmd= 400.0*XRADIUS;	//Default Home Velocity - 400 uRad/sec
+			DriveStatus.VelocityYCmd= 400.0*YRADIUS;	//Default Home Velocity - 400 uRad/sec
 			__restoreInterrupts(key);
+
+
+			msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
+			msg.buf=NULL;
+			msg.data=DRV_STATE_VELOCITY_SET;
+			xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
+			
+			msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);
+			xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
 
 
 									
 			msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
 			msg.buf=NULL;
-			msg.data=DRV_STATE_MOVE_SET;
+			msg.data=DRV_STATE_MOVE_REL_SET;
 			xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
 
 			msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);
 			xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
 
-
-
-			vTaskDelay(10);
 							
 			key=__disableInterrupts();
+			SysParams.ActionXComplete = ACTION_NOT_COMPLETE;
+			SysParams.ActionYComplete = ACTION_NOT_COMPLETE;
 			DriveStatus.MotionXStatus=MOTION_ACTIVE;
 			DriveStatus.MotionYStatus=MOTION_ACTIVE;
 			__restoreInterrupts(key);
@@ -1491,64 +1632,6 @@ void GoHomePosition(float xpos, float ypos)
 }
 
 
-
-ErrorStatus InitAbsolutePosition(void)
-{
-	MSG_HDR msg;
-	uint32_t key;
-
-	
-	vTaskDelay(1000);	
-
-
-	key=__disableInterrupts();
-	DriveStatus.TargetPosXCmd=SysParams.AxisXPosition*XRADIUS;
-	DriveStatus.TargetPosYCmd=SysParams.AxisYPosition*YRADIUS;
-	__restoreInterrupts(key);
-		
-	if(SysParams.AbsEncStatus==STATUS_OK)
-	{
-		msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_1,MSG_TYPE_CMD);
-		msg.buf=NULL;
-		msg.data=DRV_STATE_POS_SET;
-		if(pdFAIL==xQueueSend(DriveIntQueue,&msg,portMAX_DELAY))
-			return ERROR;
-		
-		msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HCMD_2,MSG_TYPE_CMD);
-		if(pdFAIL==xQueueSend(DriveIntQueue,&msg,portMAX_DELAY))
-			return ERROR;
-		
-		return SUCCESS;
-	}
-	else
-		return ERROR;
-}
-
-
-ErrorStatus EncDegreesData(uSSI enc, float *deg,  float offset)
-{
-	uint32_t key;
-
-	if(enc.ssiData.Error==0)
-	{
-		key=__disableInterrupts();
-		SysParams.AbsEncStatus=STATUS_FAIL;
-		__restoreInterrupts(key);
-		
-		return ERROR;
-	}
-	else
-	{
-		key=__disableInterrupts();
-		*deg=CntToDeg(enc.raw32Data, offset);
-		__restoreInterrupts(key);
-		if(*deg>180.0)
-			*deg-=360.0;
-
-		return SUCCESS;
-	}
-	
-}
 
 
 
