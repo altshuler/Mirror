@@ -127,15 +127,6 @@ int main(void)
      */
   RCC_GetClocksFreq(&clkStatus);
 
-#ifdef KUKU
-	RCC_Configuration();
- 
-    GPIO_Configuration();
- 
-  TIM4_Configuration();
- 
-  while(1); // Don't wait to exit
-#endif
   
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1|RCC_AHB1Periph_DMA2, ENABLE);
 
@@ -149,8 +140,8 @@ int main(void)
   DebugComPort_Init();
 #endif
   
-
-  Emergency_Int_EXTIConfig();
+  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);  
+  //Emergency_Int_EXTIConfig();
 
   GPIO_Config();
 
