@@ -80,6 +80,7 @@ struct EthConn
 
 //struct EthConn RxConn;
 struct EthConn TxConn;
+struct netconn *connn;
 
 uint8_t connType = 0; // 1 = Rx; 2 = Tx
 void Eth_Connect(uint8_t ethConnType);
@@ -143,6 +144,28 @@ void Eth_Connect(uint8_t ethConnType)
 
 				TempConnn->EConn->err = ERR_OK;
 
+				#ifdef TCP_SERVER
+					
+				error = netconn_bind(TempConnn->EConn, NULL, TempConnn->port);
+
+				if(error == ERR_OK)
+				{
+					tcp_nagle_disable(TempConnn->EConn->pcb.tcp);
+					
+					/* Tell connection to go into listening mode. */
+					 error = netconn_listen(TempConnn->EConn);
+					
+					if (error == ERR_OK)
+						TempConnn->conn_status = TCP_CONN_CLIENT_CONNECTED;	
+					else
+						TempConnn->conn_status = TCP_CONN_CLIENT_FAIL;
+				}
+				else if(error == ERR_USE)
+					TempConnn->conn_status = TCP_CONN_CLIENT_BOUND;
+				else
+					TempConnn->conn_status = TCP_CONN_CLIENT_FAIL;
+
+				#else
 				if(ethConnType == TCP_CONN_TYPE_RX) // binding is not required for Tx
 					error = netconn_bind(TempConnn->EConn, &my_addr, TempConnn->port);
 
@@ -159,6 +182,8 @@ void Eth_Connect(uint8_t ethConnType)
 					TempConnn->conn_status = TCP_CONN_CLIENT_BOUND;
 				else
 					TempConnn->conn_status = TCP_CONN_CLIENT_FAIL;
+
+				#endif
 			}
 			else
 				TempConnn->conn_status = TCP_CONN_CLIENT_FAIL;
@@ -308,19 +333,125 @@ void Eth_Tx_Task(void * pvParameters)
 	}
 	#endif
 	
-	// Initialize TxConn
-	
-	//xEthTxTimeOutTimer = xTimerCreate ((const signed char *)"xEthTxTimeOutTimer",300,pdFALSE,0,vEthTxTimeoutTimerCallback);
 
 
 
 	while(1)
 	{
-		//if(TxConn.conn_status != TCP_CONN_CLIENT_CONNECTED)
-		//{
-		//	Eth_Connect(TCP_CONN_TYPE_TX);
-		//}
+	#ifdef TCP_SERVER
+	if(TxConn.conn_status == TCP_CONN_CLIENT_CONNECTED)
+	{
+		while (TxConn.conn_status == TCP_CONN_CLIENT_CONNECTED)
+		{
+			connn = netconn_accept(TxConn.EConn);
+			
+			if(connn)
+			{
+				connn->recv_timeout = TxConn.EConn->recv_timeout;
+				tcp_nagle_disable(connn->pcb.tcp);
+				
+				do
+				{
+					buf3 = netconn_recv(connn);
+					
+					if(ERR_IS_FATAL(connn->err))
+					{
+						netbuf_delete(buf3);
+						TxConn.conn_status = TCP_CONN_CLIENT_FAIL;
+			
+						//vTaskDelay(10);
+						//break;
+					}
+					if ((buf3) != NULL)
+					{
+						for (idx=0;idx<buf3->p->len;idx++)
+						{
+							pktBuf=handleRxFromHost(((*((int8_t *)(buf3->p->payload)+idx))), 0, &intHost.rxPack);
+			
+							if(pktBuf)
+							{
+								if(pktBuf)
+								{
+									msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_HOSTRX,MSG_TYPE_PACKET);
+									msg.data=0;
+									msg.buf=pktBuf;
+									xQueueSend(hCmdMbx,&msg,portMAX_DELAY);
+								}
+							}
+						}
+						netbuf_delete(buf3);
+					}
+	
+	
+					if(TxConn.conn_status == TCP_CONN_CLIENT_CONNECTED)
+					{
+						if (xQueueReceive( intHostTXQueue, &msg, TxDelayValue ) )
+						{
+							if (msg.hdr.bit.source==MSG_SRC_HCMD)
+							{
+								if (msg.hdr.bit.type==MSG_TYPE_PACKET)
+								{
+									pktBuf=(PACKETBUF_HDR *)msg.buf;
+									if (pktBuf)
+									{
+										vTaskDelay(10);
+										//xTimerStart( xEthTxTimeOutTimer, 0 );
+										error = netconn_write(connn,(void *)PACKETBUF_DATA(pktBuf) , pktBuf->dlen, NETCONN_COPY);
+										if(error != ERR_OK)
+										{
+											TxConn.conn_status = TCP_CONN_CLIENT_FAIL;
+										}
+										//xTimerStop(xEthTxTimeOutTimer,0);
+									}
+									retMemBuf(pktBuf);
+								}
+								else if (msg.hdr.bit.type==MSG_TYPE_CMD)
+								{
+									netconn_close(TxConn.EConn);
+									TxConn.conn_status = TCP_CONN_CLIENT_DISCONNECT;
+									vTaskSuspend(NULL);
+								}	
+							}						
+						}
+						else
+						{
+			
+							if(IbitStatus.Status==IBIT_FINISHED)
+								len=PedestalStatus(pr_buff+(sizeof(uint8_t)));
+							else
+							{
+								vTaskDelay(900);
+								len=IBITStatus(pr_buff+(sizeof(uint8_t)));
+							}
+			
+							pr_buff[0]=len;
+							pktBuf=makeSinglePacketResponse(&cmdResBuffers,((PAYLOAD_HEADER *)pr_buff),portMAX_DELAY);
+							if (pktBuf)
+							{
+								if( TxConn.conn_status == TCP_CONN_CLIENT_CONNECTED )
+								{
+									error = netconn_write(connn,(void *)PACKETBUF_DATA(pktBuf) , pktBuf->dlen, NETCONN_COPY);
+									if(error != ERR_OK)
+									{
+										TxConn.conn_status = TCP_CONN_CLIENT_FAIL;
+									}
+								}
+								retMemBuf(pktBuf);
+							}
+						}
+					}
+				}while(!(connn->err));
+				netconn_close(connn);
+				netconn_delete(connn);
+			}	
+		}
+			vTaskDelay(50);
+			
+	}
+	else
+		vTaskDelay(50);
 
+	#else
 		if(TxConn.conn_status == TCP_CONN_CLIENT_CONNECTED)
 		{
 			while (TxConn.conn_status == TCP_CONN_CLIENT_CONNECTED)
@@ -330,9 +461,6 @@ void Eth_Tx_Task(void * pvParameters)
 				{
 					netbuf_delete(buf3);
 					TxConn.conn_status = TCP_CONN_CLIENT_FAIL;
-
-					//vTaskDelay(10);
-					//break;
 				}
 				if ((buf3) != NULL)
 				{
@@ -367,13 +495,12 @@ void Eth_Tx_Task(void * pvParameters)
 								if (pktBuf)
 								{
 									vTaskDelay(10);
-									//xTimerStart( xEthTxTimeOutTimer, 0 );
+							
 									error = netconn_write(TxConn.EConn,(void *)PACKETBUF_DATA(pktBuf) , pktBuf->dlen, NETCONN_COPY);
 									if(error != ERR_OK)
 									{
 										TxConn.conn_status = TCP_CONN_CLIENT_FAIL;
 									}
-									//xTimerStop(xEthTxTimeOutTimer,0);
 								}
 								retMemBuf(pktBuf);
 							}
@@ -402,13 +529,11 @@ void Eth_Tx_Task(void * pvParameters)
 						{
 							if( TxConn.conn_status == TCP_CONN_CLIENT_CONNECTED )
 							{
-								//xTimerStart( xEthTxTimeOutTimer, 0 );
 								error = netconn_write(TxConn.EConn,(void *)PACKETBUF_DATA(pktBuf) , pktBuf->dlen, NETCONN_COPY);
 								if(error != ERR_OK)
 								{
 									TxConn.conn_status = TCP_CONN_CLIENT_FAIL;
 								}
-								//xTimerStop(xEthTxTimeOutTimer,0);
 							}
 							retMemBuf(pktBuf);
 						}
@@ -420,6 +545,7 @@ void Eth_Tx_Task(void * pvParameters)
 		}
 		else
 			vTaskDelay(50);
+	#endif	
 	}
 }
 
@@ -453,7 +579,14 @@ void checkEthLink(void *pvParameters)
 		else
 		{
 			if(TxConn.conn_status != TCP_CONN_CLIENT_CONNECTED)
+			{
+				#ifdef TCP_SERVER
+				TxConn.conn_status = TCP_CONN_CLIENT_CONNECTED; 
+				#else
 				Eth_Connect(TCP_CONN_TYPE_TX);
+				#endif
+
+			}	
 			vTaskDelay(TxDelayValue*3);
 		}
 	}

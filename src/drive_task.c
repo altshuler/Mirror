@@ -219,6 +219,7 @@ char DRV_CMD_REF_MODE[3]={'R','O','N'};
 char DRV_CMD_VELOCITY[3]={'V','E','L'};	
 char DRV_CMD_MOVER[3]={'M','V','R'};	
 char DRV_CMD_ONT[3]={'O','N','T'};
+char DRV_CMD_HLT[3]={'H','L','T'};
 
 
 static char * DriveCommands[] = {
@@ -229,7 +230,8 @@ DRV_CMD_MOVE,
 DRV_CMD_REF_MODE,
 DRV_CMD_VELOCITY,
 DRV_CMD_MOVER,
-DRV_CMD_ONT
+DRV_CMD_ONT,
+DRV_CMD_HLT
 };
 
 uint8_t Drv1FwdFlag=0;
@@ -995,7 +997,7 @@ void DriveInterpTask(void *para)
 					//xSemaphoreTake(Timer_3_Sem,1);
 					if(pdPASS==SendCmdToDrive(DRIVER_1_ID, drive_in_msg.data))
 					{
-						interpScanSkipCount++;
+						//interpScanSkipCount++;
 						drv_1.cmd_tx++;
 						
 						//xSemaphoreTake(Timer_3_Sem,1);
@@ -1008,7 +1010,7 @@ void DriveInterpTask(void *para)
 					//PrepareFirstCommand(drive_in_msg.data, &DriverCmd2, CMD_FRAME_COLOR);
 					if(pdPASS==SendCmdToDrive(DRIVER_2_ID, drive_in_msg.data))
 					{
-						interpScanSkipCount++;
+						//interpScanSkipCount++;
 						drv_2.cmd_tx++;
 					}
 				}
@@ -1411,7 +1413,18 @@ unsigned char  BuildDrivePckt(char *buf, uint16_t data, uint16_t chan)
 				
 				
 			break;
-		
+
+			case DRV_STATE_HLT_SET:
+				
+				memcpy(temp,DriveCommands[HALT_COMMAND], 3);
+				temp+=3;
+				*temp=LF;
+				temp++;
+				len=temp-buf;				
+				
+				
+			break;
+			
 			default:
 				
 			break;
@@ -1639,7 +1652,7 @@ void TIM_Config(void)
   TIM_OC3PreloadConfig(TIM3, TIM_OCPreload_Disable);
  
   /* TIM Interrupts enable */
-  TIM_ITConfig(TIM3, /*TIM_IT_CC1 | TIM_IT_CC2 |*/ TIM_IT_CC3 | TIM_IT_CC4, ENABLE);
+  TIM_ITConfig(TIM3, /*TIM_IT_CC1 | TIM_IT_CC2 | TIM_IT_CC3 |*/ TIM_IT_CC4, ENABLE);
 
   /* TIM3 enable counter */
   TIM_Cmd(TIM3, ENABLE);
