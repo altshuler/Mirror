@@ -133,80 +133,44 @@ void motion_task(void *para)
 	{
 		if (xQueueReceive( MotionQueue, &read_in_msg, ( portTickType ) portMAX_DELAY ) )
 		{
-		#ifdef KUKU	
-			if(EmergStatus.Emergency1Flag==EMERGENCY_ACTIVE)
-			{
-				EmergStatus.Emerg1DebounceTmr++;
-
-				if(EmergStatus.Emerg1DebounceTmr>MAX_EMRG_DEBOUNCE_DELAY)
-				{
-					EmergStatus.Emerg1DebounceTmr=0;
-					EmergStatus.Emergency1Flag=EMERGENCY_NOT_ACTIVE;
-
-			
-					key=__disableInterrupts();
-					SysParams.SafetyState=EmergStatus.EmergencyFlagsState;
-					__restoreInterrupts(key);
-
-
-					if(EmergStatus.Emergency2Flag==EMERGENCY_NOT_ACTIVE)
-						SendEmrgCmd=1;		
-				}
-			}
-
-			if(EmergStatus.Emergency2Flag==EMERGENCY_ACTIVE)
-			{
-				EmergStatus.Emerg2DebounceTmr++;
-
-				if(EmergStatus.Emerg2DebounceTmr>MAX_EMRG_DEBOUNCE_DELAY)
-				{
-					EmergStatus.Emerg2DebounceTmr=0;
-					EmergStatus.Emergency2Flag=EMERGENCY_NOT_ACTIVE;
-
-					key=__disableInterrupts();
-					SysParams.SafetyState=EmergStatus.EmergencyFlagsState;
-					__restoreInterrupts(key);
-						
-
-					if(EmergStatus.Emergency1Flag==EMERGENCY_NOT_ACTIVE)
-						SendEmrgCmd=1;		
-				}
-			}
-	
-
-			if(SendEmrgCmd)
-			{
-				SendEmrgCmd=0;
-				if(EmergStatus.EmergencyFlagsState)
-				{
-					key=__disableInterrupts();
-					DriveStatus.MotionStatus=MOTION_NOT_ACTIVE;
-					if((SysParams.State==SYS_STATE_MAINT)||(SysParams.State==SYS_STATE_OPERATE))
-						SysParams.State=SYS_STATE_STDBY;
-					__restoreInterrupts(key);
-					
-					Brake_1_Control(DISABLE);
-				    Brake_2_Control(DISABLE);
-		
-					msg.hdr.all=MAKE_MSG_HDRTYPE(0, MSG_SRC_ISR_EMERG_1, MSG_TYPE_CMD);
-					msg.data=DRV_STATE_MOTOR_OFF;
-					msg.buf=NULL;
-					xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
-					
-			
-					msg.hdr.all=MAKE_MSG_HDRTYPE(0, MSG_SRC_ISR_EMERG_2, MSG_TYPE_CMD);
-					xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
-				}
-			}
-		#endif
-
 			
 			if (read_in_msg.hdr.bit.type==MSG_TYPE_X_ENC)
 				AbsEncoderXData=AbsEncoderXCnt;
 			else if (read_in_msg.hdr.bit.type==MSG_TYPE_Y_ENC)
 				AbsEncoderYData=AbsEncoderYCnt;
 			
-				//AbsEncoderData.ssiData.Error=0;// Disabling AbsEnc Error
+		
+			if(AbsEncoderXData.ssiData.Error!=0x0) //Ranishow enc Err-0, OK-1
+			{
+			
+				key=__disableInterrupts();
+				SysParams.AbsEncXStatus=STATUS_OK;
+				__restoreInterrupts(key);
+			}
+			else
+			{
+				key=__disableInterrupts();
+				SysParams.AbsEncXStatus=STATUS_FAIL;
+				SysParams.AllOkFlag=STATUS_FAIL;
+				__restoreInterrupts(key);
+
+			}
+
+			if(AbsEncoderYData.ssiData.Error!=0x0) //Ranishow enc Err-0, OK-1
+			{
+			
+				key=__disableInterrupts();
+				SysParams.AbsEncYStatus=STATUS_OK;
+				__restoreInterrupts(key);
+			}
+			else
+			{
+				key=__disableInterrupts();
+				SysParams.AbsEncYStatus=STATUS_FAIL;
+				SysParams.AllOkFlag=STATUS_FAIL;
+				__restoreInterrupts(key);
+
+			}				
 				PedestalPositionCmd();
 			
 				
@@ -223,11 +187,20 @@ void motion_task(void *para)
 
 void PedestalPositionCmd(void)
 {
+	uint32_t key;
 
 	if(SysParams.State==SYS_STATE_OPERATE)
 	{
-		if(DriveStatus.MotionXStatus==MOTION_ACTIVE)
-			SetNextPosition(AbsEncoderXData);
+		if(SysParams.SubState!=SYS_STPR_JOYSTICK)
+		{
+			key=__disableInterrupts();
+			SysParams.ActionXComplete = DriveStatus.MotionXStatus;
+			SysParams.ActionYComplete = DriveStatus.MotionYStatus;
+			__restoreInterrupts(key);
+		}
+		
+		//if(DriveStatus.MotionXStatus==MOTION_ACTIVE)
+		//	SetNextPosition(AbsEncoderXData);
 	}
 	else if(SysParams.State==SYS_STATE_MAINT)
 	{
@@ -237,7 +210,7 @@ void PedestalPositionCmd(void)
 }
 
 
-
+#ifdef KUKU
 void SetNextPosition(uSSI Encoder)
 {
 uint32_t EncoderData;
@@ -271,31 +244,6 @@ uint8_t  EncErrFlag=STATUS_OK;
 		if(Diff<TargetRadius)
 		{
 		
-#ifdef KUKU		
-			if(SysParams.SubState==SYS_SUB_STATE_HOME)
-			{
-				key=__disableInterrupts();
-				DriveStatus.MotionStatus=MOTION_NOT_ACTIVE;
-				//DriveStatus.VelocityCmd=0.0;
-				__restoreInterrupts(key);
-			
-			}
-			else
-			{
-				if(DriveStatus.TargetPosCmd==DriveStatus.Position1Cmd)
-					DriveStatus.TargetPosCmd=DriveStatus.Position2Cmd;
-				else
-					DriveStatus.TargetPosCmd=DriveStatus.Position1Cmd;
-
-
-				
-				msg.hdr.all=MAKE_MSG_HDRTYPE(0,MSG_SRC_ENC,MSG_TYPE_CMD);
-				msg.data=DRV_STATE_POS_SET;
-				msg.buf=NULL;
-				xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
-
-			}
-#endif				
 		}	
 	}
 	else
@@ -322,4 +270,4 @@ uint8_t  EncErrFlag=STATUS_OK;
 		}	
 	}
 }
-
+#endif
