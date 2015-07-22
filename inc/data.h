@@ -27,6 +27,8 @@
 #define SYS_STPR_1_SELECT 		0
 #define SYS_STPR_2_SELECT 		1
 #define SYS_STPR_1_2_SELECT 	2
+#define SYS_STPR_JOYSTICK		3
+
 
 #define STATUS_OK	0
 #define STATUS_FAIL	1
@@ -39,6 +41,9 @@
 #define SCAN_MODE_ERR  4                      
 #define UNKNOWN_REASON 5
 
+/*Action Complete Flag*/
+#define ACTION_COMPLETE 0
+#define ACTION_NOT_COMPLETE 1
 
 #define EMERGENCY_1_ON	1
 #define EMERGENCY_1_OFF	(~EMERGENCY_1_ON)
@@ -48,8 +53,8 @@
 #define MIN_READOUT_RATE 250
 #define MAX_READOUT_RATE 1000	//4000
 
-#define MIN_ANGLE 		-10000.0 //uRad
-#define MAX_ANGLE  		10000.0  //uRad
+#define MIN_ANGLE 		-100000.0 //uRad
+#define MAX_ANGLE  		100000.0  //uRad
 #define MAX_VELOCITY 	564.0 //uRad/sec
 #define MIN_VELOCITY	0.0
 
@@ -106,17 +111,17 @@
 		10,					/* Brake 1 Counter */\
 		10,					/* Brake 2 Counter */\
 		0.0,				/*Conroller Current */\	
-		STATUS_OK,			/*Absolute Encoder Failure */\
+		STATUS_OK,			/*Absolute Encoder X Failure */\
 		STATUS_OK,			/*Flash test Result */\	
 		STATUS_OK,			/*RAM test Result */\	
 		STATUS_OK,			/*CPU Reset Event */\	
 		STATUS_OK,			/*ALL OK FLAG */\	
-		0,					/*Reserved 1 */\
+		STATUS_OK,			/*Absolute Encoder Y Failure */\
 		0x3f,				/*Limit switches states  */\
 		STATUS_OK,			/*Safety Sw States */\
 		1000,				/*RS422 Current Message Rate */\
-		STATUS_OK,					/*Action completeness  */\
-		0,					/*Reserved 3  */\
+		ACTION_COMPLETE,	/*Action completeness -Axis X */\
+		ACTION_COMPLETE,	/*Action completeness -Axis Y   */\
 		0,					/*Reserved 4 */\
 		0,					/*Reserved 5 */\
 		0,					/*Reserved 6 */\
@@ -129,9 +134,9 @@
 		0,			/* SW Version middle number */\
 		6,			/* SW Version minor number   */\
 		15,			/* SW Date year  */\
-		6,			/* SW Date month */\
-		11,			/* SW Date day */\
-		"MIRROR SW ver:   0.0.6 FW ver: 0.2",			/* SW Version description -34 characters */\
+		7,			/* SW Date month */\
+		22,			/* SW Date day */\
+		"MIRROR SW ver:   0.0.7 FW ver: 0.2",			/* SW Version description -34 characters */\
 		0,			/* FW Version major number  */\
 		2,			/* FW Version minor number */\
 		14,			/* FW Date year */\
@@ -213,17 +218,17 @@ struct sPedestalParams
 	uint32_t  Brake1Cnt;
 	uint32_t  Brake2Cnt;
 	float	 Current;
-	uint8_t  AbsEncStatus;
+	uint8_t  AbsEncXStatus;
 	uint8_t  FlashTest;
 	uint8_t  RamTest;
 	uint8_t  CpuReset;
 	uint8_t  AllOkFlag;
-	uint8_t  Reserved1;
+	uint8_t  AbsEncYStatus;
 	uint8_t  LimitSwState;
 	uint8_t  SafetyState;
 	uint32_t RS422MesRate;
-	uint8_t  ActionComplete;
-	uint8_t  Reserved3;
+	uint8_t  ActionXComplete;
+	uint8_t  ActionYComplete;
 	uint8_t  Reserved4;
 	uint8_t  Reserved5;
 	uint32_t Reserved6;
@@ -264,9 +269,7 @@ unsigned char  NetworkDetailsResp(char *buf, uint32_t Status);
 unsigned char FactoryIpResp(char *buf, uint32_t addr);
 unsigned char  GetHomePosition(char *buf, float xpos, float ypos);
 void GoHomePosition(float xpos, float ypos);
-ErrorStatus InitAbsolutePosition(void);
 float lpf_ema_float(float sample, float Emaverage, float alpha);
-ErrorStatus EncDegreesData(uSSI enc, float *deg,  float offset);
 
 
 

@@ -59,6 +59,7 @@ extern const char *ctlTxServerQueueName[N_CTL];
 #define VELOCITY_COMMAND		4
 #define MOVE_REL_COMMAND		5
 #define ON_TARGET_COMMAND		6
+#define HALT_COMMAND			7
 
 
 #define FTOA_OK			0
@@ -90,6 +91,8 @@ extern const char *ctlTxServerQueueName[N_CTL];
 #define DRV_STATE_MOVE_REL_SET		15
 
 #define DRV_STATE_ONT_GET			16
+
+#define DRV_STATE_HLT_SET			17
 
 
 #define CURRENT_OFFSET		2.0
