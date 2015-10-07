@@ -36,6 +36,7 @@
 #include "main.h"
 #include "sysport.h"
 #include "endianutils.h"
+#include "production_data.h"
 
 /**************************************************************************/
 /*Declaration of global variables*/
@@ -363,9 +364,9 @@ unsigned char  SetStateAck(char *cmd,char *buf)
 								if(XVel!=PrevXVel)
 								{
 									if(DriveStatus.TargetPosXCmd>0.0)
-										DriveStatus.TargetPosXCmd=10.0;
+										DriveStatus.TargetPosXCmd=MAX_ABS_POS;
 									else if(DriveStatus.TargetPosXCmd<0.0)
-										DriveStatus.TargetPosXCmd=-10.0;
+										DriveStatus.TargetPosXCmd=MIN_ABS_POS;
 									
 									msg.data=DRV_STATE_MOVE_SET;
 									xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
@@ -409,9 +410,9 @@ unsigned char  SetStateAck(char *cmd,char *buf)
 								if(YVel!=PrevYVel)
 								{
 									if(DriveStatus.TargetPosYCmd>0.0)
-										DriveStatus.TargetPosYCmd=10.0;
+										DriveStatus.TargetPosYCmd=MAX_ABS_POS;
 									else if(DriveStatus.TargetPosYCmd<0.0)
-										DriveStatus.TargetPosYCmd=-10.0;
+										DriveStatus.TargetPosYCmd=MIN_ABS_POS;
 									
 									msg.data=DRV_STATE_MOVE_SET;
 									xQueueSend(DriveIntQueue,&msg,portMAX_DELAY);
@@ -931,6 +932,13 @@ unsigned char  VersionResp(char *buf)
 
 	if (buf!=NULL)
 	{
+		Versions.FwVerMajor = bootProductionData.s.factoryIds.boardRevision[0]-0x30;
+		Versions.FwVerMinor = bootProductionData.s.factoryIds.boardRevision[2]-0x30;
+		memcpy(&Versions.SwVerDescriptor[31], &bootProductionData.s.factoryIds.boardRevision[0],3);
+		Versions.Serial1 = bootProductionData.s.factoryIds.serialNumber[0]-0x30;
+		Versions.Serial2 = bootProductionData.s.factoryIds.serialNumber[1]-0x30;
+		Versions.Serial3 = bootProductionData.s.factoryIds.serialNumber[2]-0x30;
+		
 		len=sizeof(struct sVersion);
 		memcpy(buf+40, &Versions, len);
 		
