@@ -53,6 +53,8 @@
 #define MIN_READOUT_RATE 250
 #define MAX_READOUT_RATE 1000	//4000
 
+#define MIN_ABS_POS 	-10.0 //mm
+#define MAX_ABS_POS  	10.0  //mm
 #define MIN_ANGLE 		-100000.0 //uRad
 #define MAX_ANGLE  		100000.0  //uRad
 #define MAX_VELOCITY 	564.0 //uRad/sec
@@ -132,16 +134,16 @@
 {\
 		0,			/* SW Version major number  */\
 		0,			/* SW Version middle number */\
-		6,			/* SW Version minor number   */\
+		8,			/* SW Version minor number   */\
 		15,			/* SW Date year  */\
-		7,			/* SW Date month */\
-		22,			/* SW Date day */\
-		"MIRROR SW ver:   0.0.7 FW ver: 0.2",			/* SW Version description -34 characters */\
-		0,			/* FW Version major number  */\
-		2,			/* FW Version minor number */\
-		14,			/* FW Date year */\
-		9,			/* FW Date month */\
-		17,			/* FW Date day */\	
+		8,			/* SW Date month */\
+		25,			/* SW Date day */\
+		"MIRROR SW ver:   0.0.8 FW ver: 3.0",			/* SW Version description -34 characters */\
+		3,			/* FW Version major number  */\
+		0,			/* FW Version minor number */\
+		15,			/* FW Date year */\
+		8,			/* FW Date month */\
+		10,			/* FW Date day */\	
 		0,			/* Reserved 1 */\
 		0,			/* Reserved 2 */\
 		0 			/* Reserved 3 */\
@@ -172,9 +174,9 @@ struct sVersion
 	uint8_t  FwYear;
 	uint8_t  FwMonth;
 	uint8_t  FwDay;
-	uint8_t  Reserved3;
-	uint8_t  Reserved4;
-	uint8_t  Reserved5;
+	uint8_t  Serial1;
+	uint8_t  Serial2;
+	uint8_t  Serial3;
 };
 
 
