@@ -349,6 +349,7 @@ void Eth_Tx_Task(void * pvParameters)
 			{
 				connn->recv_timeout = TxConn.EConn->recv_timeout;
 				tcp_nagle_disable(connn->pcb.tcp);
+				GPIO_SetBits(BREAK_PWM_M1_GPIO_PORT, BREAK_PWM_M2_PIN); // Turn On Green Led - Connection Indication
 				
 				do
 				{
@@ -443,6 +444,7 @@ void Eth_Tx_Task(void * pvParameters)
 				}while(!(connn->err));
 				netconn_close(connn);
 				netconn_delete(connn);
+				GPIO_ResetBits(BREAK_PWM_M1_GPIO_PORT, BREAK_PWM_M2_PIN); // Turn Off Green Led - Connection Indication
 			}	
 		}
 			vTaskDelay(50);

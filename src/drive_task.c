@@ -1506,7 +1506,14 @@ void TIM_Config(void)
   //xSemaphoreTake(Timer_4_Sem,portMAX_DELAY);
 
 
-
+  /* Compute the value to be set in ARR regiter to generate signal frequency at 20 Khz */
+	  Timer_4_Period = Timer_9_Period/2;
+	/* Compute CCR3 value to generate a duty cycle at 10% for channel 1 */
+	Channel3Pulse = (uint16_t) (((uint32_t) 3 * (Timer_4_Period - 1)) / 10);
+	/* Compute CCR4 value to generate a duty cycle at 10%  for channel 2  */
+	Channel4Pulse = (uint16_t) (((uint32_t) 3 * (Timer_4_Period - 1)) / 10);
+	
+#ifdef KUKU
  
   /* Compute the value to be set in ARR regiter to generate signal frequency at 20 Khz */
   Timer_9_Period = (SystemCoreClock / 20000 ) - 1;
@@ -1515,13 +1522,7 @@ void TIM_Config(void)
   /* Compute CCR2 value to generate a duty cycle at 50%  for channel 2  */
   Channel2Pulse = (uint16_t) (((uint32_t) 5 * (Timer_9_Period - 1)) / 10);
 
-  /* Compute the value to be set in ARR regiter to generate signal frequency at 20 Khz */
-	Timer_4_Period = Timer_9_Period/2;
-  /* Compute CCR3 value to generate a duty cycle at 10% for channel 1 */
-  Channel3Pulse = (uint16_t) (((uint32_t) 3 * (Timer_4_Period - 1)) / 10);
-  /* Compute CCR4 value to generate a duty cycle at 10%  for channel 2  */
-  Channel4Pulse = (uint16_t) (((uint32_t) 3 * (Timer_4_Period - 1)) / 10);
-
+  
   /* TIM9 clock enable */
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM9 , ENABLE);
   
@@ -1557,7 +1558,7 @@ void TIM_Config(void)
   TIM_CtrlPWMOutputs(TIM9, ENABLE);
 
   GPIO_SetBits(BREAK_M1N_GPIO_PORT, BREAK_M1N_PIN | BREAK_M2N_PIN);
-
+#endif
 
 
 

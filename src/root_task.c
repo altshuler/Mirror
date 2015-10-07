@@ -102,7 +102,9 @@ void root_task(void *para)
 	//initCpuUtilTimer();
 	
 	//calibrateCpuUtilizationMeter();
-
+	
+	GPIO_SetBits(BREAK_PWM_M1_GPIO_PORT, BREAK_PWM_M1_PIN); // Turn On Red Led - Power on Indication
+	
 	InitEEprom();
 	
 	if(ERROR==GetApplicationData(&AbsEncXOffset, ABS_X_ENC_OFFSET_ADDR))

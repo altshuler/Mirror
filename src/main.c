@@ -259,13 +259,17 @@ void GPIO_Config(void)
 	 
 	/* Configure PE5 -Break_PWM_M1 and  PE6-Break_PWM_M2 as AF push-pull	 */ 
 	 GPIO_InitStructure.GPIO_Pin =	BREAK_PWM_M1_PIN|BREAK_PWM_M2_PIN;
-	 GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-  	 GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-  	 GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  	 GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
+	 GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+	 GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	 GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+	 GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	 //GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+  	 //GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+  	 //GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  	 //GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
   	 GPIO_Init(BREAK_PWM_M1_GPIO_PORT, &GPIO_InitStructure);
-	 GPIO_PinAFConfig(BREAK_PWM_M1_GPIO_PORT, BREAK_PWM_M1_PIN_SOURCE, GPIO_AF_TIM9);
-  	 GPIO_PinAFConfig(BREAK_PWM_M1_GPIO_PORT, BREAK_PWM_M2_PIN_SOURCE, GPIO_AF_TIM9);
+	 //GPIO_PinAFConfig(BREAK_PWM_M1_GPIO_PORT, BREAK_PWM_M1_PIN_SOURCE, GPIO_AF_TIM9);
+  	 //GPIO_PinAFConfig(BREAK_PWM_M1_GPIO_PORT, BREAK_PWM_M2_PIN_SOURCE, GPIO_AF_TIM9);
 
 
 	 /* Configure PD14 -Travel_PWM_L and  PD15-B-Travel_PWM_R as AF push-pull	  */ 
